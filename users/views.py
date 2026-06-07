@@ -3,8 +3,8 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView, LogoutView
-from django.http import HttpResponseRedirect
-from django.shortcuts import resolve_url
+from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, resolve_url
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, TemplateView
 from .forms import EmailLoginForm, RegisterForm
@@ -60,3 +60,12 @@ class TrainerPendingView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
     def handle_no_permission(self):
         return HttpResponseRedirect(reverse('dashboard:home'))
+
+
+def serve_avatar(request, user_id: int):
+    user = get_object_or_404(CustomUser, pk=user_id)
+    if not user.avatar_data:
+        raise Http404
+    response = HttpResponse(bytes(user.avatar_data), content_type=user.avatar_content_type or 'image/jpeg')
+    response['Cache-Control'] = 'public, max-age=3600'
+    return response

@@ -16,8 +16,8 @@
 
 <section class="card card--pad-lg">
   <div class="profile-head">
-    {% if profile_user.avatar %}
-      <img class="avatar" src="{{ profile_user.avatar.url }}" alt="">
+    {% if profile_user.has_avatar %}
+      <img class="avatar" src="{{ profile_user.avatar_display_url }}" alt="">
     {% else %}
       <div class="avatar" aria-hidden="true">{{ initials }}</div>
     {% endif %}

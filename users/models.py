@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.urls import reverse
 
 class Role(models.TextChoices):
     ADMIN = ('admin', 'Администратор')
@@ -12,6 +13,8 @@ class CustomUser(AbstractUser):
     role = models.CharField('Роль', max_length=20, choices=Role.choices, default=Role.ATHLETE)
     trainer_verified = models.BooleanField('Тренер подтверждён', default=True, help_text='Для тренеров: доступ после подтверждения администратором.')
     avatar = models.ImageField('Аватар', upload_to='avatars/', blank=True, null=True)
+    avatar_data = models.BinaryField('Данные аватара', blank=True, null=True)
+    avatar_content_type = models.CharField('Тип аватара', max_length=100, blank=True, default='')
     contact_info = models.CharField('Контакты', max_length=255, blank=True, help_text='Телефон, Telegram и т.п.')
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -39,6 +42,18 @@ class CustomUser(AbstractUser):
         super().save(*args, **kwargs)
         if self.pk:
             self.sync_role_group()
+
+    @property
+    def has_avatar(self) -> bool:
+        return bool(self.avatar_data) or bool(self.avatar)
+
+    @property
+    def avatar_display_url(self) -> str:
+        if self.avatar_data and self.pk:
+            return reverse('users:avatar', kwargs={'user_id': self.pk})
+        if self.avatar:
+            return self.avatar.url
+        return ''
 
     @property
     def display_role(self) -> str:

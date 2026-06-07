@@ -366,15 +366,12 @@ class ProfileEditView(LoginRequiredMixin, ApprovedUserMixin, UpdateView):
         return self.request.user
 
     def form_valid(self, form):
+        from users.avatar import apply_avatar_change
+
         user = form.save(commit=False)
         avatar = self.request.FILES.get('avatar')
         clear_avatar = self.request.POST.get('clear_avatar') == '1'
-        if avatar:
-            user.avatar = avatar
-        elif clear_avatar:
-            if user.avatar:
-                user.avatar.delete(save=False)
-            user.avatar = None
+        apply_avatar_change(user, avatar, clear=clear_avatar)
         user.save()
         self.object = user
         messages.success(self.request, 'Профиль сохранён.')

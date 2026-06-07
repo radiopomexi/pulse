@@ -43,9 +43,9 @@
             tabindex="0"
             aria-label="Загрузить фото профиля"
           >
-            {% if user.avatar %}
+            {% if user.has_avatar %}
             <div class="pulse-pe__dropzone-current" id="pulse-pe-current">
-              <img id="pulse-pe-current-img" src="{{ user.avatar.url }}" alt="Текущее фото профиля" draggable="false">
+              <img id="pulse-pe-current-img" src="{{ user.avatar_display_url }}" alt="Текущее фото профиля" draggable="false">
             </div>
             {% else %}
             <div class="pulse-pe__dropzone-current" id="pulse-pe-current" hidden>
