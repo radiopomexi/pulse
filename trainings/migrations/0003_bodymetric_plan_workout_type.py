@@ -1,0 +1,7 @@
+import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
+
+class Migration(migrations.Migration):
+    dependencies = [('plans', '0003_trainer_links_and_plan_dates'), ('trainings', '0002_initial'), migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
+    operations = [migrations.CreateModel(name='BodyMetric', fields=[('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('date', models.DateField(verbose_name='Дата')), ('weight_kg', models.FloatField(verbose_name='Вес, кг')), ('body_fat_percent', models.FloatField(blank=True, null=True, verbose_name='% жира')), ('note', models.TextField(blank=True, verbose_name='Заметка')), ('created_at', models.DateTimeField(auto_now_add=True)), ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='body_metrics', to=settings.AUTH_USER_MODEL))], options={'verbose_name': 'Замер тела', 'verbose_name_plural': 'Замеры тела', 'ordering': ['-date', '-created_at']}), migrations.AddField(model_name='workoutsession', name='training_plan', field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='workout_sessions', to='plans.trainingplan', verbose_name='План')), migrations.AddField(model_name='workoutsession', name='workout_type', field=models.CharField(choices=[('strength', 'Сила'), ('cardio', 'Кардио'), ('flexibility', 'Гибкость'), ('circuit', 'Круговая')], default='strength', max_length=20, verbose_name='Тип тренировки'))]

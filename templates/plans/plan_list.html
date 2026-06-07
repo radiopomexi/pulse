@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Планы{% endblock %}
+
+{% block content %}
+<div class="page-header plan-hub-header">
+  <div>
+    <h1 class="page-header__title">Планы тренировок</h1>
+    <p class="page-header__desc muted">
+      {% if can_manage_plans %}
+        Создавайте планы и назначайте их подопечным на странице каждого плана.
+      {% else %}
+        Мои планы и каталог общедоступных программ от тренеров.
+      {% endif %}
+    </p>
+  </div>
+  {% if can_manage_plans %}
+  <button type="button" class="btn btn--primary plan-hub-header__cta" id="open-plan-modal">Новый план</button>
+  {% endif %}
+</div>
+
+{% if not can_manage_plans %}
+<div class="plan-hub-tabs plan-hub-tabs--links" role="navigation" aria-label="Раздел планов">
+  <a href="{% url 'plans:list' %}" class="plan-hub-tab is-active" aria-current="page">Мои планы</a>
+  <a href="{% url 'plans:catalog' %}" class="plan-hub-tab">Каталог планов</a>
+</div>
+
+<section class="plan-hub-grid">
+  {% for plan in plans %}
+    <article class="card plan-hub-card plan-catalog-card">
+      <div class="plan-hub-card__top">
+        <h2 class="plan-hub-card__title">
+          <a href="{% url 'plans:detail' plan.pk %}">{{ plan.name }}</a>
+        </h2>
+        <span class="badge badge--live">Активен</span>
+      </div>
+      <p class="plan-hub-card__dates muted">
+        {% if plan.starts_on or plan.ends_on %}
+          {% if plan.starts_on %}{{ plan.starts_on|date:"d.m.Y" }}{% else %}—{% endif %} — {% if plan.ends_on %}{{ plan.ends_on|date:"d.m.Y" }}{% else %}—{% endif %}
+        {% else %}
+          Бессрочный
+        {% endif %}
+      </p>
+      <p class="plan-hub-card__stats muted">
+        Упражнений: <strong>{{ plan.exercise_count }}</strong>
+      </p>
+      {% if plan.description %}
+        <p class="plan-hub-card__hint muted">{{ plan.description|truncatechars:100 }}</p>
+      {% endif %}
+      <div class="plan-hub-card__footer plan-my-card__footer">
+        <a class="btn btn--primary btn--sm" href="{% url 'plans:detail' plan.pk %}">Открыть план</a>
+        {% if plan.my_assignment_id %}
+        <button type="button" class="btn btn--outline-accent btn--sm plan-my-remove-btn" data-assignment-id="{{ plan.my_assignment_id }}" data-plan-name="{{ plan.name }}">Удалить из моих</button>
+        {% endif %}
+      </div>
+    </article>
+  {% empty %}
+    <div class="plan-hub-empty plan-catalog-card plan-hub-empty--flat">
+      <div class="plan-hub-empty__icon" aria-hidden="true">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="plan-hub-empty__title">Пока нет планов</h2>
+      <p class="plan-hub-empty__text muted">Когда тренер назначит план или вы добавите его из <a href="{% url 'plans:catalog' %}">каталога</a>, он появится здесь.</p>
+    </div>
+  {% endfor %}
+</section>
+
+<dialog class="plan-remove-dialog pulse-dialog" id="plan-remove-dialog" aria-labelledby="plan-remove-dialog-title">
+  <form method="post" class="plan-remove-dialog__form" id="plan-remove-dialog-form">
+    {% csrf_token %}
+    <h2 class="pulse-dialog__title" id="plan-remove-dialog-title">Убрать план?</h2>
+    <p class="muted plan-remove-dialog__text" id="plan-remove-dialog-desc"></p>
+    <div class="plan-remove-dialog__actions">
+      <button type="button" class="btn btn--ghost btn--sm" id="plan-remove-dialog-cancel">Отмена</button>
+      <button type="submit" class="btn btn--primary btn--sm">Удалить</button>
+    </div>
+  </form>
+</dialog>
+
+{% else %}
+
+<section class="plan-hub-grid">
+  {% for plan in plans %}
+    <article class="card plan-hub-card">
+      <div class="plan-hub-card__top">
+        <h2 class="plan-hub-card__title">
+          <a href="{% url 'plans:detail' plan.pk %}">{{ plan.name }}</a>
+        </h2>
+        <span class="badge badge--live">Активен</span>
+      </div>
+      <p class="plan-hub-card__dates muted">
+        {% if plan.starts_on or plan.ends_on %}
+          {% if plan.starts_on %}{{ plan.starts_on|date:"d.m.Y" }}{% else %}—{% endif %} — {% if plan.ends_on %}{{ plan.ends_on|date:"d.m.Y" }}{% else %}—{% endif %}
+        {% else %}
+          Бессрочный
+        {% endif %}
+      </p>
+      <p class="plan-hub-card__stats muted">
+        Упражнений: <strong>{{ plan.exercise_count }}</strong>
+        · Спортсменов: <strong>{{ plan.assignment_count }}</strong>
+      </p>
+      {% if plan.description %}
+        <p class="plan-hub-card__hint muted">{{ plan.description|truncatechars:100 }}</p>
+      {% endif %}
+      <div class="plan-hub-card__footer">
+        {% if can_manage_plans and plan.author_id == user.id %}
+          <a class="btn btn--primary btn--sm" href="{% url 'plans:edit' plan.pk %}">Редактировать</a>
+          <a class="btn btn--ghost btn--sm" href="{% url 'plans:detail' plan.pk %}">Открыть</a>
+          <form method="post" action="{% url 'plans:delete' plan.pk %}" class="plan-hub-card__delete" onsubmit="return confirm('Удалить план?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn--ghost btn--sm">Удалить</button>
+          </form>
+        {% elif can_manage_plans and user.is_elevated_staff %}
+          <a class="btn btn--ghost btn--sm" href="{% url 'plans:detail' plan.pk %}">Открыть</a>
+          <form method="post" action="{% url 'plans:delete' plan.pk %}" class="plan-hub-card__delete" onsubmit="return confirm('Удалить план?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn--ghost btn--sm">Удалить</button>
+          </form>
+        {% else %}
+          <a class="btn btn--primary btn--sm" href="{% url 'plans:detail' plan.pk %}">Открыть</a>
+        {% endif %}
+      </div>
+    </article>
+  {% empty %}
+    <div class="plan-hub-empty card card--pad-lg">
+      <div class="plan-hub-empty__icon" aria-hidden="true">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="plan-hub-empty__title">Пока нет планов</h2>
+      <p class="plan-hub-empty__text muted">
+        Создайте первый план — кнопка «Новый план» вверху страницы.
+      </p>
+    </div>
+  {% endfor %}
+</section>
+
+{% endif %}
+
+{% if can_manage_plans %}
+<div class="modal-backdrop" id="plan-modal" role="dialog" aria-modal="true" aria-labelledby="plan-modal-title">
+  <div class="modal">
+    <div class="modal__header">
+      <h2 class="modal__title" id="plan-modal-title">Новый план</h2>
+      <button type="button" class="btn btn--ghost btn--sm" id="close-plan-modal" aria-label="Закрыть">✕</button>
+    </div>
+    <form method="post" class="modal__body" id="plan-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_plan">
+      <div class="form-row">
+        <label for="id_plan_name">Название</label>
+        <input type="text" name="plan_name" id="id_plan_name" required maxlength="200">
+      </div>
+      <div class="form-row">
+        <label for="id_plan_desc">Описание</label>
+        <textarea name="plan_description" id="id_plan_desc" rows="3"></textarea>
+      </div>
+      <div class="form-row form-row--inline">
+        <div class="form-row">
+          <label for="id_starts_on">Дата начала <span class="muted">(необязательно)</span></label>
+          <input type="date" name="starts_on" id="id_starts_on">
+        </div>
+        <div class="form-row">
+          <label for="id_ends_on">Дата окончания <span class="muted">(необязательно)</span></label>
+          <input type="date" name="ends_on" id="id_ends_on">
+        </div>
+      </div>
+      <p class="muted" style="font-size:0.82rem; margin:-4px 0 var(--space-sm);">Пустые даты — бессрочный план. Для <strong>жёсткого расписания</strong> укажите дату начала и окончания.</p>
+      <div class="form-row plan-modal-schedule">
+        <span class="muted" style="display:block;margin-bottom:8px;font-size:0.88rem;">Режим расписания</span>
+        <label class="plan-modal-schedule__opt"><input type="radio" name="plan_schedule" value="flex" checked> Гибкое — в любой день, многократно</label>
+        <label class="plan-modal-schedule__opt"><input type="radio" name="plan_schedule" value="strict"> Жёсткое — в рамках дат (нужны обе даты)</label>
+      </div>
+      <div class="form-row">
+        <label for="id_plan_workout_type">Тип тренировки</label>
+        <select name="workout_type" id="id_plan_workout_type">
+          <option value="">Не указан</option>
+          {% for value, label in workout_type_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <span class="muted" style="font-size:0.82rem;">Подставляется в календаре при выборе плана спортсменом.</span>
+      </div>
+      <div class="form-row">
+        <label for="id_plan_duration_minutes">Длительность тренировки, мин</label>
+        <input type="number" name="duration_minutes" id="id_plan_duration_minutes" min="1" max="600" step="1" inputmode="numeric" placeholder="необязательно">
+        <span class="muted" style="font-size:0.82rem;">Подставляется в календаре при выборе плана.</span>
+      </div>
+      <div class="form-row plan-form-public-row">
+        <label class="plan-public-toggle">
+          <input type="checkbox" name="plan_is_public" id="id_plan_is_public" class="plan-public-toggle__input">
+          <span class="plan-public-toggle__track" aria-hidden="true"><span class="plan-public-toggle__thumb"></span></span>
+          <span class="plan-public-toggle__label">Общедоступный план</span>
+        </label>
+        <span class="muted" style="font-size:0.82rem;">План появится в каталоге; у каждого спортсмена будет своё назначение.</span>
+      </div>
+      <div class="form-row plan-trainer-exercise-block">
+        <span class="muted" style="font-size:0.85rem;">Упражнения в плане</span>
+        <div class="exercise-rows plan-trainer-exercise-rows" id="exercise-rows">
+          <div class="exercise-rows__head" aria-hidden="true">
+            <span>Упражнение</span>
+            <span>Подходы</span>
+            <span>Повторы</span>
+            <span>Вес, кг</span>
+            <span></span>
+          </div>
+          <div class="exercise-row">
+            <label class="exercise-row__field exercise-row__field--grow">
+              <span class="exercise-row__label">Упражнение</span>
+              <select name="exercise_id" required>
+                {% for ex in exercises %}
+                  <option value="{{ ex.id }}">{{ ex.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="exercise-row__field">
+              <span class="exercise-row__label">Подходы</span>
+              <input type="number" name="target_sets" min="1" value="4" inputmode="numeric" aria-label="Подходы">
+            </label>
+            <label class="exercise-row__field">
+              <span class="exercise-row__label">Повторы</span>
+              <input type="number" name="target_reps" min="1" value="8" inputmode="numeric" aria-label="Повторы">
+            </label>
+            <label class="exercise-row__field">
+              <span class="exercise-row__label">Вес, кг</span>
+              <input type="number" name="target_weight_kg" min="0" step="0.5" placeholder="необяз." inputmode="decimal" aria-label="Целевой вес в килограммах">
+            </label>
+            <div class="exercise-row__tail" aria-hidden="true"></div>
+          </div>
+        </div>
+        <button type="button" class="btn btn--ghost btn--sm" id="add-exercise-row">+ строка</button>
+      </div>
+      <button type="submit" class="btn btn--primary">Сохранить план</button>
+    </form>
+  </div>
+</div>
+
+<template id="exercise-row-template">
+  <div class="exercise-row">
+    <label class="exercise-row__field exercise-row__field--grow">
+      <span class="exercise-row__label">Упражнение</span>
+      <select name="exercise_id" required>
+        {% for ex in exercises %}
+          <option value="{{ ex.id }}">{{ ex.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="exercise-row__field">
+      <span class="exercise-row__label">Подходы</span>
+      <input type="number" name="target_sets" min="1" value="4" inputmode="numeric" aria-label="Подходы">
+    </label>
+    <label class="exercise-row__field">
+      <span class="exercise-row__label">Повторы</span>
+      <input type="number" name="target_reps" min="1" value="8" inputmode="numeric" aria-label="Повторы">
+    </label>
+    <label class="exercise-row__field">
+      <span class="exercise-row__label">Вес, кг</span>
+      <input type="number" name="target_weight_kg" min="0" step="0.5" placeholder="необяз." inputmode="decimal" aria-label="Целевой вес в килограммах">
+    </label>
+    <div class="exercise-row__field exercise-row__field--action">
+      <span class="exercise-row__label">Удалить строку</span>
+      <button type="button" class="btn btn--ghost btn--sm row-remove" aria-label="Удалить строку">✕</button>
+    </div>
+  </div>
+</template>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if not can_manage_plans %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var dlg = document.getElementById("plan-remove-dialog");
+    var form = document.getElementById("plan-remove-dialog-form");
+    var desc = document.getElementById("plan-remove-dialog-desc");
+    var cancel = document.getElementById("plan-remove-dialog-cancel");
+    var urlTpl = "{% url 'plans:assignment_remove' 0 %}";
+    if (!dlg || !form || !desc) return;
+    document.querySelectorAll(".plan-my-remove-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-assignment-id");
+        var name = btn.getAttribute("data-plan-name") || "";
+        form.action = urlTpl.replace("/0/", "/" + id + "/");
+        desc.textContent = "План «" + name + "» будет убран из списка «Мои планы». Повторно его можно добавить из каталога.";
+        if (dlg.showModal) dlg.showModal();
+        else dlg.setAttribute("open", "");
+      });
+    });
+    if (cancel) cancel.addEventListener("click", function () { dlg.close(); });
+  });
+</script>
+{% endif %}
+{% if can_manage_plans %}
+<script src="{% static 'js/modal.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    PulseModal.bindPlanModal("plan-modal", "open-plan-modal", "close-plan-modal");
+    var rows = document.getElementById("exercise-rows");
+    var tpl = document.getElementById("exercise-row-template");
+    if (rows && tpl) {
+      document.getElementById("add-exercise-row").addEventListener("click", function () {
+        rows.appendChild(tpl.content.cloneNode(true));
+      });
+      rows.addEventListener("click", function (e) {
+        if (e.target.classList.contains("row-remove")) {
+          var row = e.target.closest(".exercise-row");
+          if (row && rows.querySelectorAll(".exercise-row").length > 1) {
+            row.remove();
+          }
+        }
+      });
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}

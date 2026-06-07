@@ -1,0 +1,91 @@
+{% extends "staff/layout.html" %}
+
+{% block title %}{{ plan.name }} — план{% endblock %}
+
+{% block staff_content %}
+<p class="muted" style="margin-bottom:8px;">
+  <a href="{% url 'dashboard:staff_plans' %}">← Все планы</a>
+</p>
+<h1 class="page-header__title">{{ plan.name }}</h1>
+<p class="page-header__desc muted" style="margin-bottom: var(--space-lg);">
+  Автор: {{ plan.author.get_full_name|default:plan.author.email }} ({{ plan.author.email }})
+  · Создан: {{ plan.created_at|date:"d.m.Y H:i" }}
+  · Обновлён: {{ plan.updated_at|date:"d.m.Y H:i" }}
+  · {% if plan.strict_schedule %}Жёсткое расписание{% else %}Гибкое расписание{% endif %}
+  {% if plan.starts_on or plan.ends_on %}
+    · Период: {% if plan.starts_on %}{{ plan.starts_on|date:"d.m.Y" }}{% else %}—{% endif %} — {% if plan.ends_on %}{{ plan.ends_on|date:"d.m.Y" }}{% else %}—{% endif %}
+  {% else %}
+    · Даты не заданы (бессрочно)
+  {% endif %}
+  {% if plan.is_public %}· <span class="staff-plan-badge staff-plan-badge--public">В каталоге</span>{% endif %}
+</p>
+
+<section class="card card--pad-lg staff-plan-detail-meta" style="margin-bottom: var(--space-md);">
+  <h2 class="card__title" style="margin-bottom: var(--space-sm);">Параметры</h2>
+  <dl class="staff-plan-dl">
+    <div><dt>Тип тренировки</dt><dd>{% if plan.workout_type %}{{ plan.get_workout_type_display }}{% else %}—{% endif %}</dd></div>
+    <div><dt>Длительность</dt><dd>{% if plan.duration_minutes %}{{ plan.duration_minutes }} мин{% else %}—{% endif %}</dd></div>
+  </dl>
+  {% if plan.description %}
+  <p class="muted" style="margin: var(--space-md) 0 0; white-space: pre-wrap;">{{ plan.description }}</p>
+  {% endif %}
+</section>
+
+<section class="card card--pad-lg" style="margin-bottom: var(--space-md);">
+  <h2 class="card__title" style="margin-bottom: var(--space-md);">Упражнения</h2>
+  <div class="table-scroll">
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Упражнение</th>
+          <th>Подходы</th>
+          <th>Повторы</th>
+          <th>Вес, кг</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pe in plan_exercises %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td><strong>{{ pe.exercise.name }}</strong></td>
+          <td>{{ pe.target_sets }}</td>
+          <td>{{ pe.target_reps }}</td>
+          <td>{% if pe.target_weight_kg %}{{ pe.target_weight_kg }}{% else %}—{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="muted">В плане нет упражнений.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card card--pad-lg">
+  <h2 class="card__title" style="margin-bottom: var(--space-md);">Назначения спортсменам</h2>
+  <div class="table-scroll">
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Спортсмен</th>
+          <th>Статус</th>
+          <th>Кем назначен</th>
+          <th>Дата назначения</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in assignments %}
+        <tr>
+          <td>{{ a.athlete.email }}</td>
+          <td>{{ a.get_status_display }}</td>
+          <td>{% if a.assigned_by %}{{ a.assigned_by.email }}{% else %}—{% endif %}</td>
+          <td>{{ a.created_at|date:"d.m.Y H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="muted">Назначений нет.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

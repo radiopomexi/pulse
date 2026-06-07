@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ weight_page_title }}{% endblock %}
+
+{% block extra_head %}
+  {{ chart_body_weight|json_script:"pulse-weight-tracking-chart" }}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header__title">{{ weight_page_title }}</h1>
+  <p class="page-header__desc muted">График и история замеров.</p>
+</div>
+
+<section class="card card--pad-lg weight-page__chart-card">
+  {% if chart_body_weight.has_enough %}
+  <div class="chart-wrap chart-wrap--tall weight-page__chart-wrap">
+    <canvas id="chartWeightPage" aria-label="График веса тела"></canvas>
+  </div>
+  {% else %}
+  <p class="weight-page__placeholder muted">Недостаточно данных для графика</p>
+  {% endif %}
+</section>
+
+<section class="card card--pad-lg weight-page__list-card">
+  <div class="weight-page__list-head">
+    <h2 class="card__title" style="margin:0;">Замеры</h2>
+    {% if weight_can_edit %}
+    <button type="button" class="btn btn--primary" id="weight-add-open">Добавить замер</button>
+    {% endif %}
+  </div>
+  {% if body_metrics_list %}
+  <div class="weight-page__table-wrap">
+    <table class="weight-page__table simple-table">
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>Вес, кг</th>
+          <th>% жира</th>
+          {% if weight_can_edit %}<th></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in body_metrics_list %}
+        <tr>
+          <td>{{ m.date|date:"d.m.Y" }}</td>
+          <td>{{ m.weight_kg|floatformat:2 }}</td>
+          <td>{% if m.body_fat_percent is not None %}{{ m.body_fat_percent|floatformat:1 }}{% else %}—{% endif %}</td>
+          {% if weight_can_edit %}
+          <td class="weight-page__del-cell">
+            <form method="post" class="weight-page__del-form" onsubmit="return confirm('Удалить замер от {{ m.date|date:'d.m.Y' }}?');">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete_body_metric">
+              <input type="hidden" name="metric_id" value="{{ m.pk }}">
+              <button type="submit" class="weight-page__del-btn" aria-label="Удалить замер">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"/>
+                </svg>
+              </button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted" style="margin-top: var(--space-md);">Замеров пока нет.</p>
+  {% endif %}
+</section>
+
+<div class="weight-page__footer-actions">
+  <a class="btn btn--ghost weight-page__back" href="{{ weight_back_url }}">Назад в профиль</a>
+</div>
+
+{% if weight_can_edit %}
+<div class="modal-backdrop" id="weight-add-modal" role="dialog" aria-modal="true" aria-labelledby="weight-add-title" hidden>
+  <div class="modal weight-page__modal">
+    <div class="modal__header">
+      <h2 class="modal__title" id="weight-add-title">Новый замер</h2>
+      <button type="button" class="btn btn--ghost btn--sm" id="weight-add-close" aria-label="Закрыть">✕</button>
+    </div>
+    <form method="post" class="modal__body weight-page__modal-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_body_metric">
+      <div class="form-row">
+        <label for="{{ body_metric_form.weight_kg.id_for_label }}">{{ body_metric_form.weight_kg.label }}</label>
+        {{ body_metric_form.weight_kg }}
+        {{ body_metric_form.weight_kg.errors }}
+      </div>
+      <div class="form-row">
+        <label for="{{ body_metric_form.body_fat_percent.id_for_label }}">{{ body_metric_form.body_fat_percent.label }}</label>
+        {{ body_metric_form.body_fat_percent }}
+        {{ body_metric_form.body_fat_percent.errors }}
+      </div>
+      <div class="form-row">
+        <label for="{{ body_metric_form.date.id_for_label }}">{{ body_metric_form.date.label }}</label>
+        {{ body_metric_form.date }}
+        {{ body_metric_form.date.errors }}
+      </div>
+      <div class="form-row">
+        <label for="{{ body_metric_form.note.id_for_label }}">{{ body_metric_form.note.label }} <span class="muted">(необязательно)</span></label>
+        {{ body_metric_form.note }}
+        {{ body_metric_form.note.errors }}
+      </div>
+      <div style="display:flex; gap: var(--space-sm); flex-wrap: wrap; margin-top: var(--space-md);">
+        <button type="submit" class="btn btn--primary">Сохранить</button>
+        <button type="button" class="btn btn--ghost" id="weight-add-cancel">Отмена</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    PulseCharts.initWeightTrackingPage();
+    var modal = document.getElementById("weight-add-modal");
+    var openBtn = document.getElementById("weight-add-open");
+    var closeBtn = document.getElementById("weight-add-close");
+    var cancelBtn = document.getElementById("weight-add-cancel");
+    if (!modal || !openBtn) return;
+    function openM() {
+      modal.hidden = false;
+      modal.classList.add("is-open");
+    }
+    function closeM() {
+      modal.classList.remove("is-open");
+      modal.hidden = true;
+    }
+    openBtn.addEventListener("click", openM);
+    if (closeBtn) closeBtn.addEventListener("click", closeM);
+    if (cancelBtn) cancelBtn.addEventListener("click", closeM);
+    modal.addEventListener("click", function (e) {
+      if (e.target === modal) closeM();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && modal.classList.contains("is-open")) closeM();
+    });
+  });
+</script>
+{% endblock %}

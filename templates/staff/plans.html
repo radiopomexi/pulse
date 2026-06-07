@@ -1,0 +1,140 @@
+{% extends "staff/layout.html" %}
+
+{% block title %}Планы — панель{% endblock %}
+
+{% block staff_content %}
+<h1 class="page-header__title">Планы тренировок</h1>
+<p class="page-header__desc muted" style="margin-bottom: var(--space-md);">Все планы платформы. Поиск по названию и автору, фильтр по каталогу. Удаление необратимо.</p>
+
+<form method="get" class="staff-toolbar card" style="margin-bottom: var(--space-md);">
+  <div class="staff-toolbar__row">
+    <div class="staff-toolbar__search-col">
+      <label class="staff-toolbar__label" for="staff-plans-q">Поиск (название / email автора / логин)</label>
+      <div class="staff-searchbar">
+        <span class="staff-searchbar__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </span>
+        <input type="search" name="q" id="staff-plans-q" class="staff-searchbar__input" value="{{ search_q }}" placeholder="фрагмент названия или email…" autocomplete="off">
+      </div>
+    </div>
+    <div class="staff-toolbar__role-col">
+      <label class="staff-toolbar__label" for="staff-plans-public">Каталог</label>
+      <select name="public" id="staff-plans-public">
+        <option value=""{% if filter_public == '' %} selected{% endif %}>Все</option>
+        <option value="1"{% if filter_public == '1' %} selected{% endif %}>В каталоге</option>
+        <option value="0"{% if filter_public == '0' %} selected{% endif %}>Не в каталоге</option>
+      </select>
+    </div>
+    <div class="staff-toolbar__actions">
+      <button type="submit" class="btn btn--primary staff-toolbar__submit">Найти</button>
+      {% if filter_user %}
+      <a class="btn btn--ghost staff-toolbar__reset" href="{% url 'dashboard:staff_plans' %}?user={{ filter_user.pk }}">Сброс</a>
+      {% else %}
+      <a class="btn btn--ghost staff-toolbar__reset" href="{% url 'dashboard:staff_plans' %}">Сброс</a>
+      {% endif %}
+    </div>
+  </div>
+  {% if filter_user %}
+  <input type="hidden" name="user" value="{{ filter_user.pk }}">
+  {% endif %}
+</form>
+
+{% if filter_user %}
+<div class="card card--pad staff-plan-filter-banner" style="margin-bottom: var(--space-md);">
+  <p class="muted" style="margin:0;">Показаны планы, связанные с пользователем <strong>{{ filter_user.email }}</strong> (автор или назначение).</p>
+  <p style="margin:8px 0 0;"><a class="btn btn--ghost btn--sm" href="{% url 'dashboard:staff_plans' %}">Сбросить фильтр пользователя</a></p>
+</div>
+{% endif %}
+
+<div class="card card--pad-lg table-scroll">
+  <table class="staff-table">
+    <thead>
+      <tr>
+        <th>Название</th>
+        <th>Автор</th>
+        <th>Создан / обновлён</th>
+        <th>Упражнений</th>
+        <th></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in plans_list %}
+      <tr>
+        <td><strong>{{ p.name }}</strong></td>
+        <td>{{ p.author.email }}</td>
+        <td>{{ p.created_at|date:"d.m.Y" }} / {{ p.updated_at|date:"d.m.Y" }}</td>
+        <td>{{ p.exercise_count }}</td>
+        <td>
+          <a class="btn btn--primary btn--sm" href="{% url 'dashboard:staff_plan_detail' p.pk %}">Открыть</a>
+        </td>
+        <td>
+          <button type="button" class="btn btn--ghost btn--sm staff-open-delete" data-plan-id="{{ p.pk }}" data-plan-name="{{ p.name|escape }}">Удалить</button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="muted">Планов нет.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="modal-backdrop" id="staff-delete-modal" role="dialog" aria-modal="true" aria-labelledby="staff-del-title">
+  <div class="modal staff-delete-modal-inner">
+    <div class="modal__header">
+      <h2 class="modal__title" id="staff-del-title">Удалить план?</h2>
+      <button type="button" class="btn btn--ghost btn--sm" id="staff-delete-close" aria-label="Закрыть">✕</button>
+    </div>
+    <p class="muted" id="staff-delete-text"></p>
+    <form method="post" class="modal__body" id="staff-delete-form" style="padding-top:0;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_plan">
+      <input type="hidden" name="plan_id" id="staff-delete-plan-id" value="">
+      {% if filter_user %}
+      <input type="hidden" name="filter_user" value="{{ filter_user.pk }}">
+      {% endif %}
+      <input type="hidden" name="pres_q" value="{{ search_q }}">
+      <input type="hidden" name="pres_public" value="{{ filter_public }}">
+      <div style="display:flex; gap: var(--space-sm); flex-wrap:wrap;">
+        <button type="submit" class="btn btn--primary">Да, удалить</button>
+        <button type="button" class="btn btn--ghost" id="staff-delete-cancel">Отмена</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var modal = document.getElementById("staff-delete-modal");
+      var form = document.getElementById("staff-delete-form");
+      var pid = document.getElementById("staff-delete-plan-id");
+      var txt = document.getElementById("staff-delete-text");
+      function openM(id, name) {
+        pid.value = id;
+        txt.textContent = "Будет удалён план «" + name + "» со всеми назначениями и строками упражнений.";
+        modal.hidden = false;
+        modal.classList.add("is-open");
+      }
+      function closeM() {
+        modal.classList.remove("is-open");
+        modal.hidden = true;
+      }
+      document.querySelectorAll(".staff-open-delete").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          openM(btn.getAttribute("data-plan-id"), btn.getAttribute("data-plan-name") || "");
+        });
+      });
+      document.getElementById("staff-delete-close").addEventListener("click", closeM);
+      document.getElementById("staff-delete-cancel").addEventListener("click", closeM);
+      modal.addEventListener("click", function (e) {
+        if (e.target === modal) closeM();
+      });
+    });
+  </script>
+{% endblock %}

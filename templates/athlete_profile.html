@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Спортсмен: {{ profile_user.get_full_name|default:profile_user.email }}{% endblock %}
+
+{% block extra_head %}
+  {{ chart_types|json_script:"pulse-profile-types" }}
+  {{ chart_exercise_progress|json_script:"pulse-profile-exercises" }}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="muted" style="margin-bottom:4px;"><a href="{% url 'dashboard:profile' %}">← К моему профилю</a></p>
+  <h1 class="page-header__title">Прогресс подопечного</h1>
+  <p class="page-header__desc muted">{{ profile_user.get_full_name|default:profile_user.email }} · {{ profile_user.email }}</p>
+</div>
+
+<section class="card card--pad-lg">
+  <p class="muted">Только просмотр: типы тренировок и прогресс в ключевых упражнениях. Вес тела — на отдельной странице.</p>
+</section>
+
+<section class="card card--pad-lg weight-summary-card">
+  <div class="weight-summary-card__inner">
+    <div>
+      <p class="weight-summary-card__eyebrow muted">Текущий вес</p>
+      {% if body_weight_summary.has_current %}
+      <p class="weight-summary-card__current">{{ body_weight_summary.current_kg|floatformat:1 }} <span class="weight-summary-card__unit">кг</span></p>
+      {% else %}
+      <p class="weight-summary-card__current weight-summary-card__current--empty muted">—</p>
+      {% endif %}
+      {% if body_weight_summary.change_display %}
+      <p class="weight-summary-card__change {% if body_weight_summary.change_positive %}weight-summary-card__change--bad{% elif body_weight_summary.change_positive == False %}weight-summary-card__change--good{% else %}muted{% endif %}">Изменение за месяц: {{ body_weight_summary.change_display }}</p>
+      {% else %}
+      <p class="weight-summary-card__change muted">Изменение за месяц: нет данных</p>
+      {% endif %}
+    </div>
+    <a class="btn btn--primary weight-summary-card__cta" href="{% url 'dashboard:athlete_weight' profile_user.pk %}">Отслеживание веса</a>
+  </div>
+</section>
+
+<section class="profile-grid">
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Типы тренировок</h2>
+      <span class="badge">Распределение</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chartProfileTypes" aria-label="Круговая диаграмма типов"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Прогресс по упражнениям</h2>
+      <p class="card__subtitle">Макс. вес за неделю (топ‑3)</p>
+    </div>
+    <div class="chart-wrap chart-wrap--tall">
+      <canvas id="chartProfileExercises" aria-label="Линейный график прогресса"></canvas>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    PulseCharts.initProfile();
+  });
+</script>
+{% endblock %}

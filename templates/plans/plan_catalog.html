@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Каталог планов{% endblock %}
+
+{% block content %}
+<div class="page-header plan-hub-header">
+  <div>
+    <h1 class="page-header__title">Каталог планов</h1>
+    <p class="page-header__desc muted">Общедоступные программы от тренеров. Добавляйте себе и выполняйте в любой день.</p>
+  </div>
+</div>
+
+<div class="plan-hub-tabs plan-hub-tabs--links" role="navigation" aria-label="Раздел планов">
+  <a href="{% url 'plans:list' %}" class="plan-hub-tab">Мои планы</a>
+  <a href="{% url 'plans:catalog' %}" class="plan-hub-tab is-active" aria-current="page">Каталог планов</a>
+</div>
+
+<form method="get" class="plan-catalog-query-card" action="{% url 'plans:catalog' %}">
+  <div class="plan-catalog-query-card__inner">
+    <div class="plan-catalog-query-card__search">
+      <span class="plan-catalog-query-card__search-icon material-symbols-outlined" aria-hidden="true">search</span>
+      <input type="search" name="q" class="plan-catalog-query-card__search-input" value="{{ filter_q }}" placeholder="Поиск по названию плана" autocomplete="off" maxlength="200" enterkeyhint="search">
+    </div>
+    <div class="plan-catalog-query-card__filters">
+      <label class="sr-only" for="catalog-filter-type">Тип тренировки</label>
+      <select name="workout_type" id="catalog-filter-type" class="plan-catalog-query-card__select" onchange="this.form.requestSubmit()">
+        <option value="">Все типы</option>
+        {% for val, label in workout_type_choices %}
+          <option value="{{ val }}"{% if filter_workout_type == val %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <label class="sr-only" for="catalog-filter-duration">Длительность</label>
+      <select name="duration" id="catalog-filter-duration" class="plan-catalog-query-card__select" onchange="this.form.requestSubmit()">
+        <option value=""{% if not filter_duration %} selected{% endif %}>Все длительности</option>
+        <option value="lt30"{% if filter_duration == 'lt30' %} selected{% endif %}>До 30 мин</option>
+        <option value="30-60"{% if filter_duration == '30-60' %} selected{% endif %}>30–60 мин</option>
+        <option value="60-90"{% if filter_duration == '60-90' %} selected{% endif %}>60–90 мин</option>
+        <option value="gt90"{% if filter_duration == 'gt90' %} selected{% endif %}>Больше 90 мин</option>
+      </select>
+    </div>
+    <a href="{% url 'plans:catalog' %}" class="btn btn--ghost btn--sm plan-catalog-query-card__reset">Сбросить</a>
+  </div>
+</form>
+
+{% if catalog_plans %}
+<section class="plan-hub-grid">
+  {% for plan in catalog_plans %}
+    <article class="card plan-hub-card plan-catalog-card">
+      <div class="plan-hub-card__top">
+        <h2 class="plan-hub-card__title">{{ plan.name }}</h2>
+      </div>
+      <p class="plan-catalog-card__author muted">Тренер: <strong>{{ plan.author.get_full_name|default:plan.author.email }}</strong></p>
+      <p class="plan-hub-card__dates muted">
+        {% if plan.starts_on or plan.ends_on %}
+          {% if plan.starts_on %}{{ plan.starts_on|date:"d.m.Y" }}{% else %}—{% endif %} — {% if plan.ends_on %}{{ plan.ends_on|date:"d.m.Y" }}{% else %}—{% endif %}
+        {% else %}
+          Бессрочный
+        {% endif %}
+      </p>
+      <p class="plan-hub-card__stats muted">
+        Тип: <strong>{% if plan.workout_type %}{{ plan.get_workout_type_display }}{% else %}—{% endif %}</strong>
+        · Длительность: <strong>{% if plan.duration_minutes %}{{ plan.duration_minutes }} мин{% else %}—{% endif %}</strong>
+        · Упражнений: <strong>{{ plan.exercise_count }}</strong>
+      </p>
+      {% if plan.description %}
+        <p class="plan-hub-card__hint muted">{{ plan.description|truncatechars:100 }}</p>
+      {% endif %}
+      <div class="plan-hub-card__footer plan-catalog-card__footer">
+        <a class="btn btn--ghost btn--sm" href="{% url 'plans:detail' plan.pk %}">Просмотреть</a>
+        <form method="post" action="{% url 'plans:catalog_add_self' %}" class="plan-catalog-add-form">
+          {% csrf_token %}
+          <input type="hidden" name="plan_id" value="{{ plan.pk }}">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          {% if plan.catalog_already_added %}
+            <button type="button" class="btn btn--ghost btn--sm plan-catalog-add-btn" disabled>Добавлен</button>
+          {% else %}
+            <button type="submit" class="btn btn--primary btn--sm plan-catalog-add-btn">Добавить себе</button>
+          {% endif %}
+        </form>
+      </div>
+    </article>
+  {% endfor %}
+</section>
+{% else %}
+<section class="plan-catalog-empty-section">
+  <div class="plan-catalog-empty-card">
+    {% if catalog_filters_active %}
+    <span class="material-symbols-outlined plan-catalog-empty-card__icon" aria-hidden="true">search_off</span>
+    <h2 class="plan-catalog-empty-card__title">Ничего не найдено</h2>
+    <p class="plan-catalog-empty-card__subtitle">Попробуйте изменить поиск или фильтры</p>
+    {% else %}
+    <span class="material-symbols-outlined plan-catalog-empty-card__icon" aria-hidden="true">fitness_center</span>
+    <h2 class="plan-catalog-empty-card__title">Нет общедоступных планов</h2>
+    <p class="plan-catalog-empty-card__subtitle">Пока ни один тренер не опубликовал план в каталоге</p>
+    {% endif %}
+    {% if catalog_filters_active %}
+    <a href="{% url 'plans:catalog' %}" class="btn btn--ghost btn--sm plan-catalog-empty-card__btn">Сбросить фильтры</a>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

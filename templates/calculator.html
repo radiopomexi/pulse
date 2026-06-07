@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Калькулятор{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header__title-row">
+    <h1 class="page-header__title">Калькулятор калорий и ИМТ</h1>
+    <button type="button" class="calculator-help-btn" id="calculator-help-open" aria-label="Справка по показателям" aria-haspopup="dialog" aria-controls="calculator-help-dialog">
+      <span class="material-symbols-outlined calculator-help-btn__icon" aria-hidden="true">help</span>
+    </button>
+  </div>
+  <p class="page-header__desc muted">BMR по формуле Миффлина — Сан Жеора, поддерживающая калорийность (TDEE) и индекс массы тела.</p>
+</div>
+
+<div class="grid-split">
+  <section class="card card--pad-lg">
+    <h2 class="card__title" style="margin-bottom: var(--space-md);">Данные</h2>
+    <form method="post" class="form-grid">
+      {% csrf_token %}
+      <div class="form-row">
+        <label for="id_sex">{{ form.sex.label }}</label>
+        {{ form.sex }}
+        {{ form.sex.errors }}
+      </div>
+      <div class="form-row form-row--inline">
+        <div class="form-row">
+          <label for="id_age">{{ form.age.label }}</label>
+          {{ form.age }}
+          {{ form.age.errors }}
+        </div>
+        <div class="form-row">
+          <label for="id_height_cm">{{ form.height_cm.label }}</label>
+          {{ form.height_cm }}
+          {{ form.height_cm.errors }}
+        </div>
+        <div class="form-row">
+          <label for="id_weight_kg">{{ form.weight_kg.label }}</label>
+          {{ form.weight_kg }}
+          {{ form.weight_kg.errors }}
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="id_activity">{{ form.activity.label }}</label>
+        {{ form.activity }}
+        {{ form.activity.errors }}
+      </div>
+      <button type="submit" class="btn btn--primary">Рассчитать</button>
+    </form>
+  </section>
+
+  {% if results %}
+  <section class="card card--pad-lg calculator-results">
+    <h2 class="card__title" style="margin-bottom: var(--space-md);">Результат</h2>
+    <div class="calculator-results__grid">
+      <article class="calculator-results__tile">
+        <div class="calculator-results__label">BMR</div>
+        <div class="calculator-results__value">{{ results.bmr }} <span class="calculator-results__unit">ккал/сут</span></div>
+        <p class="muted calculator-results__hint">Базальный метаболизм в покое</p>
+      </article>
+      <article class="calculator-results__tile calculator-results__tile--accent">
+        <div class="calculator-results__label">Поддержка (TDEE)</div>
+        <div class="calculator-results__value">{{ results.tdee }} <span class="calculator-results__unit">ккал/сут</span></div>
+        <p class="muted calculator-results__hint">С учётом коэффициента активности {{ results.activity_factor }}</p>
+      </article>
+      <article class="calculator-results__tile">
+        <div class="calculator-results__label">ИМТ</div>
+        <div class="calculator-results__value">{{ results.bmi }}</div>
+        <p class="muted calculator-results__hint">{{ results.bmi_zone }}</p>
+      </article>
+    </div>
+    <p class="muted" style="margin-top: var(--space-md); font-size: 0.85rem;">
+      Расчёты носят ознакомительный характер. Для диеты и тренировок консультируйтесь со специалистом.
+    </p>
+  </section>
+  {% else %}
+  <section class="card card--pad-lg">
+    <p class="muted">Заполните форму слева и нажмите «Рассчитать» — результат появится здесь.</p>
+  </section>
+  {% endif %}
+</div>
+
+<dialog class="calculator-help-dialog pulse-dialog" id="calculator-help-dialog" aria-labelledby="calculator-help-dialog-title">
+  <div class="calculator-help-dialog__inner">
+    <h2 class="pulse-dialog__title calculator-help-dialog__title" id="calculator-help-dialog-title">Справка по показателям</h2>
+    <div class="calculator-help-dialog__body">
+      <h3 class="calculator-help-dialog__h">BMR (Basal Metabolic Rate)</h3>
+      <p>Базальный метаболизм: сколько калорий организм сжигает в покое для поддержания жизнедеятельности. Рассчитывается по формуле Миффлина — Сан Жеора с учётом пола, возраста, роста и веса.</p>
+      <h3 class="calculator-help-dialog__h">TDEE (Total Daily Energy Expenditure)</h3>
+      <p>Поддерживающая калорийность: общее количество калорий, которое нужно потреблять ежедневно с учётом уровня физической активности. Рассчитывается как BMR × коэффициент активности.</p>
+      <h3 class="calculator-help-dialog__h">ИМТ (BMI)</h3>
+      <p>Индекс массы тела: соотношение веса и роста, используется для оценки нормы, дефицита или избытка массы тела.</p>
+    </div>
+    <div class="calculator-help-dialog__footer">
+      <button type="button" class="btn btn--primary" id="calculator-help-close">Понятно</button>
+    </div>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var dlg = document.getElementById("calculator-help-dialog");
+    var openBtn = document.getElementById("calculator-help-open");
+    var closeBtn = document.getElementById("calculator-help-close");
+    if (!dlg || !openBtn || !closeBtn) return;
+    function openD() {
+      if (dlg.showModal) dlg.showModal();
+      else dlg.setAttribute("open", "");
+    }
+    function closeD() {
+      if (dlg.close) dlg.close();
+      else dlg.removeAttribute("open");
+    }
+    openBtn.addEventListener("click", openD);
+    closeBtn.addEventListener("click", closeD);
+  });
+</script>
+{% endblock %}

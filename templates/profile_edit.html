@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Редактирование профиля{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/profile_edit.css' %}">
+{% endblock %}
+
+{% block body_class %}pulse-pe-page{% endblock %}
+
+{% block content %}
+<div class="pulse-pe">
+  <header class="pulse-pe__intro">
+    <h1 class="pulse-pe__title">Редактирование профиля</h1>
+    <p class="pulse-pe__subtitle">Фото обрезается до квадрата 150×150 перед сохранением.</p>
+  </header>
+
+  <div class="pulse-pe__shell">
+    <form
+      id="pulse-pe-form"
+      class="pulse-pe__form"
+      method="post"
+      enctype="multipart/form-data"
+      action=""
+      novalidate
+    >
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="pulse-pe__errors" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="pulse-pe__avatar-block">
+        <span class="pulse-pe__label">Фото профиля</span>
+        <div class="pulse-pe__avatar-inner">
+          <input type="file" id="pulse-pe-picker" class="pulse-pe__visually-hidden" accept="image/jpeg,image/png,image/webp,image/gif" tabindex="-1" aria-hidden="true">
+          <input type="file" name="avatar" id="pulse-pe-avatar-submit" class="pulse-pe__visually-hidden" tabindex="-1" aria-hidden="true" disabled>
+
+          <div
+            class="pulse-pe__dropzone"
+            id="pulse-pe-dropzone"
+            role="button"
+            tabindex="0"
+            aria-label="Загрузить фото профиля"
+          >
+            {% if user.avatar %}
+            <div class="pulse-pe__dropzone-current" id="pulse-pe-current">
+              <img id="pulse-pe-current-img" src="{{ user.avatar.url }}" alt="Текущее фото профиля" draggable="false">
+            </div>
+            {% else %}
+            <div class="pulse-pe__dropzone-current" id="pulse-pe-current" hidden>
+              <img id="pulse-pe-current-img" src="" alt="" draggable="false">
+            </div>
+            <div class="pulse-pe__dropzone-placeholder" id="pulse-pe-placeholder">
+              <span class="material-symbols-outlined pulse-pe__cam" aria-hidden="true">photo_camera</span>
+              <span class="pulse-pe__hint-text">Нажмите для загрузки фото</span>
+            </div>
+            {% endif %}
+            <div class="pulse-pe__stage" id="pulse-pe-stage" hidden>
+              <img id="pulse-pe-img" class="pulse-pe__stage-img" src="" alt="" draggable="false">
+            </div>
+          </div>
+
+          <div class="pulse-pe__crop" id="pulse-pe-crop">
+            <label class="pulse-pe__zoom-label" for="pulse-pe-zoom">Масштаб</label>
+            <input type="range" id="pulse-pe-zoom" class="pulse-pe__range" min="0.5" max="2" step="0.01" value="1" aria-valuemin="0.5" aria-valuemax="2" aria-valuenow="1">
+          </div>
+          <div class="pulse-pe__editor-actions">
+            <button type="button" class="pulse-pe__btn-ghost" id="pulse-pe-replace">Другое фото</button>
+            <button type="button" class="pulse-pe__btn-ghost" id="pulse-pe-reset">Сбросить</button>
+          </div>
+          <input type="hidden" name="clear_avatar" id="pulse-pe-clear-avatar" value="0">
+        </div>
+      </div>
+
+      <div class="pulse-pe__field">
+        <label class="pulse-pe__label" for="id_first_name">{{ form.first_name.label }}</label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}<div class="pulse-pe__err">{{ form.first_name.errors }}</div>{% endif %}
+      </div>
+      <div class="pulse-pe__field">
+        <label class="pulse-pe__label" for="id_last_name">{{ form.last_name.label }}</label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}<div class="pulse-pe__err">{{ form.last_name.errors }}</div>{% endif %}
+      </div>
+      <div class="pulse-pe__field">
+        <label class="pulse-pe__label" for="id_email">{{ form.email.label }}</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="pulse-pe__err">{{ form.email.errors }}</div>{% endif %}
+      </div>
+      <div class="pulse-pe__field">
+        <label class="pulse-pe__label" for="id_contact_info">{{ form.contact_info.label }}</label>
+        {{ form.contact_info }}
+        {% if form.contact_info.errors %}<div class="pulse-pe__err">{{ form.contact_info.errors }}</div>{% endif %}
+      </div>
+
+      <div class="pulse-pe__actions">
+        <button type="submit" class="pulse-pe__submit">Сохранить</button>
+        <a href="{% url 'dashboard:profile' %}" class="pulse-pe__cancel">Отмена</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/profile_edit.js' %}"></script>
+{% endblock %}

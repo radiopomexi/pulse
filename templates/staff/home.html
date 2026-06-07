@@ -1,0 +1,36 @@
+{% extends "staff/layout.html" %}
+
+{% block title %}Панель персонала{% endblock %}
+
+{% block staff_content %}
+<h1 class="page-header__title">Обзор</h1>
+<p class="page-header__desc muted" style="margin-bottom: var(--space-lg);">Сводные показатели платформы.</p>
+<section class="grid-metrics staff-stats-row">
+  <article class="card metric">
+    <div class="metric__label">Всего пользователей</div>
+    <div class="metric__value">{{ stat_users }}</div>
+    <p class="metric__hint">Зарегистрировано</p>
+    <div class="metric__accent-line" aria-hidden="true"></div>
+  </article>
+  <article class="card metric">
+    <div class="metric__label">Тренеров</div>
+    <div class="metric__value">{{ stat_trainers }}</div>
+    <p class="metric__hint">С ролью «Тренер»</p>
+    <div class="metric__accent-line" aria-hidden="true"></div>
+  </article>
+  <article class="card metric">
+    <div class="metric__label">Планов</div>
+    <div class="metric__value">{{ stat_plans }}</div>
+    <p class="metric__hint">TrainingPlan в базе</p>
+    <div class="metric__accent-line" aria-hidden="true"></div>
+  </article>
+</section>
+<div class="card card--pad-lg">
+  <h2 class="card__title" style="margin-bottom: var(--space-sm);">Разделы</h2>
+  <p class="muted" style="margin-bottom: var(--space-md);">Управление пользователями и планами тренировок.</p>
+  <div style="display:flex; flex-wrap:wrap; gap: var(--space-sm);">
+    <a class="btn btn--primary" href="{% url 'dashboard:staff_users' %}">Пользователи</a>
+    <a class="btn btn--ghost" href="{% url 'dashboard:staff_plans' %}">Планы</a>
+  </div>
+</div>
+{% endblock %}

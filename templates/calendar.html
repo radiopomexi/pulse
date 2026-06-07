@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Календарь{% endblock %}
+
+{% block extra_head %}
+  {{ calendar_events|json_script:"pulse-calendar-events" }}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header__title">Календарь тренировок</h1>
+</div>
+
+<div class="card card--pad-lg">
+  <div
+    id="calendar-app"
+    data-mode="full"
+    data-year="{{ calendar_year }}"
+    data-month="{{ calendar_month }}"
+  ></div>
+</div>
+
+<div class="card calendar-detail">
+  <div id="day-detail" class="day-detail" hidden>
+    <h2 class="day-detail__title" id="day-detail-title"></h2>
+    <ul class="session-list" id="day-detail-list"></ul>
+  </div>
+  <p class="muted" id="day-detail-placeholder">Выберите день в календаре.</p>
+</div>
+
+<form id="calendar-csrf-store" hidden aria-hidden="true">{% csrf_token %}</form>
+
+{% if calendar_can_log %}
+<div
+  class="modal-backdrop"
+  id="calendar-workout-backdrop"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="cw-modal-title"
+  aria-hidden="true"
+  hidden
+>
+  <div class="modal calendar-workout-modal">
+    <div class="modal__header">
+      <h2 class="modal__title" id="cw-modal-title">Тренировка</h2>
+      <button type="button" class="btn btn--ghost btn--sm cw-modal-close" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="modal__body">
+      <p class="muted" style="margin:0;">Дата: <strong id="cw-session-date"></strong></p>
+      <p class="message message--error" id="cw-form-error" role="alert" hidden></p>
+
+      <div class="form-row">
+        <label for="cw-plan-select">Тренировка по плану</label>
+        <select id="cw-plan-select">
+          <option value="">— не по плану —</option>
+        </select>
+        <p id="cw-linked-plan-display" class="muted" style="margin:4px 0 0;font-size:0.85rem;" hidden></p>
+        <span class="muted" style="font-size:0.82rem;">При выборе плана упражнения подставятся из плана; после сохранения назначение помечается выполненным.</span>
+      </div>
+
+      <div class="form-row">
+        <label for="cw-workout-type">Тип тренировки</label>
+        <select id="cw-workout-type"></select>
+      </div>
+      <div class="form-row">
+        <label for="cw-title">Название <span class="muted">(необязательно)</span></label>
+        <input type="text" id="cw-title" maxlength="200" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <label for="cw-duration">Длительность, мин</label>
+        <input type="number" id="cw-duration" min="1" max="600" step="1" inputmode="numeric" placeholder="—">
+      </div>
+      <div class="form-row">
+        <label for="cw-notes">Заметки</label>
+        <textarea id="cw-notes" rows="3" placeholder="Ощущения, комментарии…"></textarea>
+      </div>
+
+      <div class="form-row">
+        <span class="muted" style="font-size:0.85rem;">Упражнения</span>
+        <p class="exercise-rows__hint muted">Подходы, повторения и фактический вес можно изменить перед сохранением.</p>
+        <div class="exercise-rows">
+          <div class="exercise-rows__head" aria-hidden="true">
+            <span>Упражнение</span>
+            <span>Подходы</span>
+            <span>Повторы</span>
+            <span>Вес, кг</span>
+            <span></span>
+          </div>
+          <div id="cw-exercise-rows" class="calendar-workout-exercise-body"></div>
+        </div>
+        <button type="button" class="btn btn--ghost btn--sm" id="cw-add-exercise">Добавить упражнение</button>
+      </div>
+
+      <div style="display:flex; gap: var(--space-sm); flex-wrap: wrap;">
+        <button type="button" class="btn btn--primary" id="cw-save">Сохранить</button>
+        <button type="button" class="btn btn--ghost cw-modal-close">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<template id="cw-exercise-row-template">
+  <div class="exercise-row">
+    <label class="exercise-row__field exercise-row__field--grow">
+      <span class="exercise-row__label">Упражнение</span>
+      <select class="cw-exercise-select" required></select>
+    </label>
+    <label class="exercise-row__field">
+      <span class="exercise-row__label">Подходы</span>
+      <input type="number" class="cw-in-sets" min="1" max="99" value="3" inputmode="numeric" aria-label="Подходы">
+    </label>
+    <label class="exercise-row__field">
+      <span class="exercise-row__label">Повторы</span>
+      <input type="number" class="cw-in-reps" min="1" max="999" value="10" inputmode="numeric" aria-label="Повторы">
+    </label>
+    <label class="exercise-row__field">
+      <span class="exercise-row__label">Вес, кг</span>
+      <input type="number" class="cw-in-weight" min="0" max="999.99" step="0.5" value="0" inputmode="decimal" aria-label="Вес в килограммах">
+    </label>
+    <div class="exercise-row__field exercise-row__field--action">
+      <span class="exercise-row__label">Удалить строку</span>
+      <button type="button" class="btn btn--ghost btn--sm cw-remove-row" aria-label="Удалить упражнение">✕</button>
+    </div>
+  </div>
+</template>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/calendar.js' %}"></script>
+{% if calendar_can_log %}
+<script src="{% static 'js/calendar_workout.js' %}"></script>
+{% endif %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var root = document.getElementById("calendar-app");
+    var events = JSON.parse(document.getElementById("pulse-calendar-events").textContent);
+    var canLog = {{ calendar_can_log|yesno:"true,false" }};
+    if (canLog) {
+      PulseCalendarWorkout.init({
+        backdrop: "#calendar-workout-backdrop",
+        dayUrl: "{% url 'dashboard:calendar_api_day' %}",
+        planDataUrlTemplate: "{% url 'dashboard:api_plan_data' pk=0 %}",
+        saveUrl: "{% url 'dashboard:calendar_session_save' %}",
+      });
+    }
+    PulseCalendar.renderFull(root, events, {
+      onSelectDay: function (iso, dayData) {
+        var dd = dayData || { sessions: [], plans: [] };
+        if (window.PulseCalendarWorkout) {
+          PulseCalendarWorkout.showDayDetail(iso, dd);
+        }
+        if (canLog && iso && window.PulseCalendarWorkout) {
+          PulseCalendarWorkout.open(iso);
+        }
+      },
+    });
+    if (canLog) {
+      var params = new URLSearchParams(window.location.search);
+      var openIso = params.get("open");
+      var planIdParam = params.get("plan_id");
+      if (planIdParam && window.PulseCalendarWorkout && PulseCalendarWorkout.setPendingPlanId) {
+        PulseCalendarWorkout.setPendingPlanId(planIdParam);
+        params.delete("plan_id");
+      }
+      if (openIso) {
+        params.delete("open");
+        var qs = params.toString();
+        var newUrl = window.location.pathname + (qs ? "?" + qs : "") + window.location.hash;
+        window.history.replaceState({}, "", newUrl);
+        PulseCalendarWorkout.open(openIso);
+      } else if (planIdParam) {
+        var qs2 = params.toString();
+        var newUrl2 = window.location.pathname + (qs2 ? "?" + qs2 : "") + window.location.hash;
+        window.history.replaceState({}, "", newUrl2);
+      }
+    }
+  });
+</script>
+{% endblock %}

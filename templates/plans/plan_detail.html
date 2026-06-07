@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ plan.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="muted" style="margin-bottom:4px;"><a href="{% url 'plans:list' %}">← Все планы</a></p>
+  <h1 class="page-header__title">{{ plan.name }}</h1>
+  <p class="page-header__desc muted">
+    Автор: {{ plan.author.get_full_name|default:plan.author.email }}
+    {% if plan.starts_on or plan.ends_on %}
+      · {% if plan.starts_on %}{{ plan.starts_on|date:"d.m.Y" }}{% else %}—{% endif %}
+      — {% if plan.ends_on %}{{ plan.ends_on|date:"d.m.Y" }}{% else %}—{% endif %}
+    {% else %}
+      · Бессрочный план
+    {% endif %}
+    · {% if plan.strict_schedule %}Жёсткое расписание{% else %}Гибкое расписание{% endif %}
+  </p>
+  {% if show_catalog_add_self %}
+  <div class="plan-detail-self-add" style="margin-top: var(--space-sm);">
+    <form method="post" action="{% url 'plans:catalog_add_self' %}" class="plan-detail-add-self-form">
+      {% csrf_token %}
+      <input type="hidden" name="plan_id" value="{{ plan.pk }}">
+      <input type="hidden" name="next" value="{{ request.path }}">
+      {% if my_assignment %}
+        <button type="button" class="plan-detail-add-self-btn" disabled aria-disabled="true">Добавлен</button>
+      {% else %}
+        <button type="submit" class="plan-detail-add-self-btn">Добавить себе</button>
+      {% endif %}
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+{% if plan.description %}
+<section class="card card--pad-lg" style="margin-bottom: var(--space-md);">
+  <h2 class="card__title" style="margin-bottom: var(--space-sm);">Описание</h2>
+  <p class="muted" style="margin:0; white-space:pre-wrap;">{{ plan.description }}</p>
+</section>
+{% endif %}
+
+<section class="card card--pad-lg plan-detail-exercises">
+  <div class="card__header">
+    <h2 class="card__title">Упражнения</h2>
+    {% if is_author %}
+      <a class="btn btn--ghost btn--sm" href="{% url 'plans:edit' plan.pk %}">Редактировать</a>
+    {% endif %}
+  </div>
+  <div class="plan-ex-table-wrap">
+    <table class="plan-ex-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Упражнение</th>
+          <th>Подходы</th>
+          <th>Повторы</th>
+          <th>Вес, кг</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pe in plan_exercises %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ pe.exercise.name }}</td>
+          <td>{{ pe.target_sets }}</td>
+          <td>{{ pe.target_reps }}</td>
+          <td>{% if pe.target_weight_kg %}{{ pe.target_weight_kg }}{% else %}—{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="muted">Нет упражнений.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="plan-ex-cards">
+    {% for pe in plan_exercises %}
+    <article class="plan-ex-card">
+      <div class="plan-ex-card__title">{{ pe.exercise.name }}</div>
+      <p class="muted" style="margin:0;">Подходы: {{ pe.target_sets }} · Повторы: {{ pe.target_reps }}</p>
+      <p class="muted" style="margin:0;">Вес: {% if pe.target_weight_kg %}{{ pe.target_weight_kg }} кг{% else %}—{% endif %}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% if is_author or is_staff_elevated %}
+<section class="card card--pad-lg plan-detail-assignments">
+  <div class="card__header plan-detail-assignments__header">
+    <h2 class="card__title">Назначения</h2>
+    {% if is_author %}
+      <button type="button" class="btn btn--primary btn--sm" data-plan-assign-open>Назначить спортсмену</button>
+    {% endif %}
+  </div>
+  <div class="table-scroll">
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Атлет</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for asg in assignments %}
+        <tr>
+          <td>{{ asg.athlete.get_full_name|default:asg.athlete.email }}</td>
+          <td>
+            {% if asg.status == 'paused' %}
+              <span class="badge">Пауза</span>
+            {% else %}
+              <span class="badge badge--live">Активен</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="2" class="muted">Нет назначений.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if is_author %}
+<div
+  class="modal-backdrop plan-assign-backdrop"
+  id="plan-assign-backdrop"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="plan-assign-title"
+  aria-hidden="true"
+  hidden
+  data-athletes-url="{% url 'plans:assign_athletes_api' plan.pk %}"
+  data-toggle-url="{% url 'plans:assign_toggle' plan.pk %}"
+>
+  <div class="modal plan-assign-modal pulse-modal-dark">
+    <div class="modal__header">
+      <h2 class="modal__title" id="plan-assign-title">Назначить план</h2>
+      <button type="button" class="btn btn--ghost btn--sm" data-plan-assign-close aria-label="Закрыть">✕</button>
+    </div>
+    <div class="modal__body">
+      <p class="muted" style="margin:0 0 var(--space-md);">Выберите подопечных: у каждого будет своё назначение одного и того же плана. Снятие отметки удаляет только назначение этого спортсмена.</p>
+      <div id="plan-assign-athletes-list"></div>
+      <div style="margin-top: var(--space-md);">
+        <button type="button" class="btn btn--ghost" data-plan-assign-close>Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endif %}
+
+{% if my_assignment %}
+<section class="card card--pad-lg plan-detail-my-assignment">
+  <h2 class="card__title" style="margin-bottom: var(--space-sm);">Ваше назначение</h2>
+  <p class="muted">Статус: <strong>{{ my_assignment.get_status_display }}</strong>
+    {% if plan.strict_schedule %}· План с жёстким расписанием: выполнение в календаре в пределах указанных дат.{% else %}· Гибкое расписание: можно назначать тренировки в любой день.{% endif %}
+  </p>
+  {% if my_assignment.status != 'paused' %}
+  <p style="margin-top: var(--space-md); margin-bottom: 0;">
+    <a class="btn btn--primary" href="{% url 'dashboard:calendar' %}?plan_id={{ plan.pk }}">Назначить тренировку в календаре</a>
+  </p>
+  {% else %}
+  <p class="muted" style="margin-top: var(--space-md);">Назначение на паузе — обратитесь к тренеру.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if is_author %}
+<script src="{% static 'js/plan_assign_modal.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    PulsePlanAssignModal.init();
+  });
+</script>
+{% endif %}
+{% endblock %}

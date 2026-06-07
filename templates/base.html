@@ -1,0 +1,138 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Pulse{% endblock %} — трекинг тренировок</title>
+  <link rel="icon" type="image/svg+xml" href="{% url 'favicon_svg' %}" sizes="any">
+  <link rel="shortcut icon" type="image/svg+xml" href="{% url 'favicon_svg' %}">
+  <link rel="apple-touch-icon" href="{% url 'favicon_svg' %}">
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem("pulse-theme") === "light") {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<div class="shell">
+  <header class="shell__header">
+    <div class="shell__header-inner">
+      <div class="shell__brand">
+        <a href="{% url 'dashboard:landing' %}" class="shell__logo" aria-label="Pulse — на главную">
+          <span class="shell__logo-icon-wrap" aria-hidden="true">
+            <span class="material-symbols-outlined shell__logo-icon">vital_signs</span>
+          </span>
+          <span class="shell__logo-text">Pulse</span>
+        </a>
+        <span class="shell__tagline">Beat Tracked</span>
+      </div>
+      <span class="shell__header-spacer" aria-hidden="true"></span>
+      {% if user.is_authenticated %}
+      <form id="pulse-global-csrf" style="display:none" aria-hidden="true">{% csrf_token %}</form>
+      <div
+        class="pulse-notif"
+        id="pulse-notifications-root"
+        data-list-url="{% url 'dashboard:notifications_api_list' %}"
+        data-mark-all-url="{% url 'dashboard:notifications_mark_all_read' %}"
+        data-mark-read-template="{% url 'dashboard:notifications_mark_read' pk=0 %}"
+      >
+        <button type="button" class="pulse-notif__toggle" id="pulse-notif-toggle" aria-label="Уведомления" aria-expanded="false" aria-haspopup="true">
+          <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
+          {% if pulse_notifications.unread_count %}
+          <span class="pulse-notif__badge" aria-label="Непрочитанных: {{ pulse_notifications.unread_count }}">{{ pulse_notifications.unread_count }}</span>
+          {% else %}
+          <span class="pulse-notif__badge" hidden aria-hidden="true">0</span>
+          {% endif %}
+        </button>
+        <div class="pulse-notif__dropdown" id="pulse-notif-panel" hidden>
+          <div class="pulse-notif__list">
+            {% for it in pulse_notifications.items %}
+            <button type="button" class="pulse-notif__item{% if not it.is_read %} pulse-notif__item--unread{% endif %}" data-id="{{ it.id }}" data-link="{{ it.link|default:''|escape }}">
+              <span class="pulse-notif__item-msg">{{ it.message }}</span>
+              <span class="pulse-notif__item-time muted">{{ it.time_label }}</span>
+            </button>
+            {% empty %}
+            <p class="pulse-notif__empty muted">Нет уведомлений</p>
+            {% endfor %}
+          </div>
+          <button type="button" class="pulse-notif__mark-all">Отметить все прочитанными</button>
+        </div>
+      </div>
+      {% endif %}
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Включить светлую тему" title="Светлая тема">
+        <span class="material-symbols-outlined theme-toggle__icon theme-toggle__icon--light" aria-hidden="true">light_mode</span>
+        <span class="material-symbols-outlined theme-toggle__icon theme-toggle__icon--dark" aria-hidden="true">dark_mode</span>
+      </button>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-controls="main-nav" aria-expanded="false" aria-label="Открыть меню">
+        <span class="nav-toggle__bar" aria-hidden="true"></span>
+        <span class="nav-toggle__bar" aria-hidden="true"></span>
+        <span class="nav-toggle__bar" aria-hidden="true"></span>
+      </button>
+      <nav class="shell__nav" id="main-nav" aria-label="Основная навигация">
+        {% if user.is_authenticated %}
+          {% if not user.is_blocked_trainer %}
+            <a class="nav-link{% if nav == 'dashboard' %} nav-link--active{% endif %}" href="{% url 'dashboard:home' %}">Дашборд</a>
+            <a class="nav-link{% if nav == 'profile' %} nav-link--active{% endif %}" href="{% url 'dashboard:profile' %}">Профиль</a>
+            <a class="nav-link{% if nav == 'calendar' %} nav-link--active{% endif %}" href="{% url 'dashboard:calendar' %}">Календарь</a>
+            <a class="nav-link{% if nav == 'calculator' %} nav-link--active{% endif %}" href="{% url 'dashboard:calculator' %}">Калькулятор</a>
+            {% if user.is_elevated_staff or user.can_access_trainer_features or user.role == 'athlete' or user.is_superuser %}
+              <a class="nav-link{% if nav == 'plans' %} nav-link--active{% endif %}" href="{% url 'plans:list' %}">Планы</a>
+            {% endif %}
+          {% else %}
+            <a class="nav-link{% if nav == 'calculator' %} nav-link--active{% endif %}" href="{% url 'dashboard:calculator' %}">Калькулятор</a>
+          {% endif %}
+          {% if user.is_staff %}
+            <a class="nav-link" href="{% url 'dashboard:staff_home' %}">Админка</a>
+          {% endif %}
+          <form action="{% url 'users:logout' %}" method="post" class="shell__nav-form">
+            {% csrf_token %}
+            <button type="submit" class="btn btn--ghost btn--sm">Выйти</button>
+          </form>
+        {% else %}
+          <a class="nav-link" href="{% url 'users:login' %}">Вход</a>
+          <a class="btn btn--primary btn--sm" href="{% url 'users:register' %}">Регистрация</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell__main" id="main">
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="message{% if message.tags %} message--{{ message.tags }}{% endif %}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="shell__footer">
+    © 2026 Pulse. Все права защищены.
+  </footer>
+</div>
+{% block scripts %}{% endblock %}
+{% if user.is_authenticated %}
+<script src="{% static 'js/notifications.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var n = document.getElementById("pulse-notifications-root");
+    if (n && window.PulseNotifications) PulseNotifications.init(n);
+  });
+</script>
+{% endif %}
+<script src="{% static 'js/theme-toggle.js' %}"></script>
+<script src="{% static 'js/nav-mobile.js' %}"></script>
+</body>
+</html>

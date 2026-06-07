@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Главная{% endblock %}
+
+{% block body_class %}{% if not user.is_authenticated %}page-landing{% endif %}{% endblock %}
+
+{% block extra_head %}
+  {% if show_home_dashboard %}
+    {{ chart_weeks|json_script:"pulse-chart-weeks" }}
+    {{ chart_days|json_script:"pulse-chart-days" }}
+    {{ chart_types|json_script:"pulse-dash-types" }}
+    {{ chart_exercise_weeks|json_script:"pulse-dash-exercises" }}
+    {{ chart_body_weight|json_script:"pulse-dash-body-weight" }}
+    {{ calendar_mini|json_script:"pulse-calendar-mini" }}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="hero__eyebrow">Performance · Recovery · Rhythm</p>
+    <h1 class="hero__title">Шаг за шагом, просто и ясно</h1>
+    <p class="hero__lead muted">
+      Pulse — платформа для тренировок с динамической визуализацией прогресса
+    </p>
+    <div class="hero__actions"{% if not user.is_authenticated %} id="promo-register"{% endif %}>
+      {% if user.is_authenticated %}
+        {% if user.is_blocked_trainer %}
+          <a class="btn btn--primary" href="{% url 'users:trainer_pending' %}">Статус тренера</a>
+        {% elif show_home_dashboard %}
+          <a class="btn btn--primary" href="#pulse-home-dashboard">Обзор и метрики</a>
+        {% else %}
+          <a class="btn btn--primary" href="{% url 'dashboard:home' %}">Открыть дашборд</a>
+        {% endif %}
+      {% else %}
+        <a class="btn btn--primary" href="{% url 'users:register' %}">Создать аккаунт</a>
+        <a class="btn btn--ghost" href="{% url 'users:login' %}">Войти</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="hero__visual">
+    <div class="hero__visual-panel">
+      <div class="hero__visual-stack">
+        <figure class="hero__figure" aria-hidden="true">
+          <img
+            class="hero__blur-art"
+            src="{% static 'img/rectangle-blur.svg' %}"
+            width="710"
+            height="719"
+            alt=""
+          />
+        </figure>
+        {% if user.is_authenticated %}
+        <div class="hero__stat-grid">
+          <article class="hero__mini-card">
+            <div class="hero__mini-label">Неделя</div>
+            <div class="hero__mini-metric">{{ hero_volume_change }}</div>
+            <div class="hero__mini-label hero__mini-label--hint muted">тоннаж к прошлой</div>
+          </article>
+          <article class="hero__mini-card">
+            <div class="hero__mini-label">Ритм</div>
+            <div class="hero__mini-metric">{{ hero_days_with_workouts }} / 7</div>
+            <div class="hero__mini-label hero__mini-label--hint muted">дней движения</div>
+          </article>
+        </div>
+        {% else %}
+        <div class="hero__stat-grid">
+          <article class="hero__mini-card">
+            <div class="hero__mini-label">Спортсменов</div>
+            <div class="hero__mini-metric">{{ landing_athletes_count }}</div>
+            <div class="hero__mini-label hero__mini-label--hint muted">на платформе</div>
+          </article>
+          <article class="hero__mini-card">
+            <div class="hero__mini-label">Тренеров</div>
+            <div class="hero__mini-metric">{{ landing_trainers_count }}</div>
+            <div class="hero__mini-label hero__mini-label--hint muted">на платформе</div>
+          </article>
+          <article class="hero__mini-card">
+            <div class="hero__mini-label">Планов</div>
+            <div class="hero__mini-metric">{{ landing_plans_count }}</div>
+            <div class="hero__mini-label hero__mini-label--hint muted">всего создано</div>
+          </article>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if show_home_dashboard %}
+<div id="pulse-home-dashboard" class="home-dashboard-wrap">
+  {% include "partials/dashboard_main.html" %}
+</div>
+{% elif not user.is_authenticated %}
+<div class="ld-promo ld-promo--after-hero">
+  <section class="ld-section ld-features" aria-labelledby="ld-features-heading">
+    <div class="ld-section__inner">
+      <h2 id="ld-features-heading" class="ld-heading">
+        <span class="ld-heading__text">Возможности</span>
+      </h2>
+      <p class="ld-lead muted">Всё необходимое, чтобы видеть нагрузку, прогресс и ритм тренировок в одном месте.</p>
+      <div class="ld-features__grid">
+        <article class="ld-card">
+          <h3 class="ld-card__title">Трекинг тренировок</h3>
+          <p class="ld-card__text muted">Записывайте подходы, повторения, веса и объём.</p>
+        </article>
+        <article class="ld-card">
+          <h3 class="ld-card__title">Динамическая визуализация</h3>
+          <p class="ld-card__text muted">Графики нагрузки, прогресса и распределения типов тренировок.</p>
+        </article>
+        <article class="ld-card">
+          <h3 class="ld-card__title">Умный календарь</h3>
+          <p class="ld-card__text muted">Планируйте и анализируйте каждую сессию по дням.</p>
+        </article>
+        <article class="ld-card">
+          <h3 class="ld-card__title">Планы от тренера</h3>
+          <p class="ld-card__text muted">Получайте готовые программы и отчитывайтесь о выполнении.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="ld-section ld-how" aria-labelledby="ld-how-heading">
+    <div class="ld-section__inner">
+      <h2 id="ld-how-heading" class="ld-heading">
+        <span class="ld-heading__text">Как это работает</span>
+      </h2>
+      <p class="ld-lead muted">Три шага от регистрации до уверенности в своих цифрах.</p>
+      <div class="ld-how__row">
+        <article class="ld-card ld-step">
+          <span class="ld-step__num" aria-hidden="true">1</span>
+          <h3 class="ld-step__title">Регистрация</h3>
+          <p class="ld-card__text muted">Создайте аккаунт за минуту и выберите роль спортсмена или тренера.</p>
+        </article>
+        <article class="ld-card ld-step">
+          <span class="ld-step__num" aria-hidden="true">2</span>
+          <h3 class="ld-step__title">Записывайте тренировки</h3>
+          <p class="ld-card__text muted">Фиксируйте сессии, объёмы и планы — данные сразу попадают в аналитику.</p>
+        </article>
+        <article class="ld-card ld-step">
+          <span class="ld-step__num" aria-hidden="true">3</span>
+          <h3 class="ld-step__title">Анализируйте прогресс</h3>
+          <p class="ld-card__text muted">Смотрите динамику по неделям и дням, держите ритм и цели на виду.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="ld-section ld-audience" aria-labelledby="ld-audience-heading">
+    <div class="ld-section__inner">
+      <h2 id="ld-audience-heading" class="ld-heading">
+        <span class="ld-heading__text">Для кого</span>
+      </h2>
+      <div class="ld-audience__grid">
+        <article class="ld-card ld-audience__col">
+          <h3 class="ld-card__title">Спортсменам</h3>
+          <ul class="ld-list muted">
+            <li>Тренируйтесь с умом — фиксируйте, анализируйте, прогрессируйте</li>
+            <li>Наглядная статистика по объёму и частоте</li>
+            <li>Мотивация за счёт видимого прогресса</li>
+          </ul>
+        </article>
+        <article class="ld-card ld-audience__col">
+          <h3 class="ld-card__title">Тренерам</h3>
+          <ul class="ld-list muted">
+            <li>Удобное создание и выдача планов</li>
+            <li>Отслеживание выполнения у подопечных</li>
+            <li>Меньше ручных отчётов — больше фокуса на работе</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="ld-section ld-cta" aria-labelledby="ld-cta-heading">
+    <div class="ld-section__inner">
+      <div class="ld-cta__panel">
+        <h2 id="ld-cta-heading" class="ld-cta__title">Начните отслеживать прогресс уже сегодня</h2>
+        <p class="ld-cta__desc muted">Присоединяйтесь к Pulse — фиксируйте тренировки и смотрите, как растёт ваша форма.</p>
+        <div class="ld-cta__actions">
+          <a class="btn btn--primary" href="{% url 'users:register' %}">Зарегистрироваться</a>
+          <a class="ld-cta__link muted" href="#promo-register">К кнопкам входа и регистрации выше</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {% if show_home_dashboard %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script src="{% static 'js/calendar.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    PulseCharts.initDashboard();
+    var mini = document.getElementById("mini-calendar-root");
+    var miniScript = document.getElementById("pulse-calendar-mini");
+    if (mini && miniScript) {
+      try {
+        var data = JSON.parse(miniScript.textContent);
+        PulseCalendar.renderMini(mini, data, document.getElementById("mini-calendar-detail"));
+      } catch (e) {}
+    }
+  });
+</script>
+  {% endif %}
+{% endblock %}

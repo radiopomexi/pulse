@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Редактирование: {{ plan.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="muted" style="margin-bottom:4px;"><a href="{% url 'plans:detail' plan.pk %}">← К плану</a></p>
+  <h1 class="page-header__title">Редактирование плана</h1>
+</div>
+
+<form method="post" class="card card--pad-lg plan-edit-form">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="form-errors" role="alert">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+  <div class="form-row">
+    <label for="id_name">Название</label>
+    {{ form.name }}
+  </div>
+  <div class="form-row">
+    <label for="id_description">Описание</label>
+    {{ form.description }}
+  </div>
+  <div class="form-row form-row--inline">
+    <div class="form-row">
+      <label for="id_starts_on">Дата начала <span class="muted">(необязательно)</span></label>
+      {{ form.starts_on }}
+    </div>
+    <div class="form-row">
+      <label for="id_ends_on">Дата окончания <span class="muted">(необязательно)</span></label>
+      {{ form.ends_on }}
+    </div>
+  </div>
+  <p class="muted" style="font-size:0.82rem; margin:-4px 0 var(--space-sm);">Если даты не указаны, план бессрочный. Для <strong>жёсткого расписания</strong> укажите обе даты.</p>
+  <div class="form-row plan-schedule-radios">
+    <span class="plan-schedule-radios__label">Режим расписания</span>
+    {{ form.strict_schedule }}
+  </div>
+  <div class="form-row">
+    <label for="{{ form.workout_type.id_for_label }}">Тип тренировки</label>
+    {{ form.workout_type }}
+    <span class="muted" style="font-size:0.82rem;">Сила, кардио, гибкость, круговая или другое; подставляется в календаре при выборе плана спортсменом.</span>
+  </div>
+  <div class="form-row">
+    <label for="{{ form.duration_minutes.id_for_label }}">Длительность тренировки, мин</label>
+    {{ form.duration_minutes }}
+    <span class="muted" style="font-size:0.82rem;">Необязательно; подставляется в календаре при выборе плана спортсменом.</span>
+  </div>
+  <div class="form-row">
+    <label class="plan-public-toggle">
+      {{ form.is_public }}
+      <span class="plan-public-toggle__track" aria-hidden="true"><span class="plan-public-toggle__thumb"></span></span>
+      <span class="plan-public-toggle__label">Общедоступный план</span>
+    </label>
+    <span class="muted" style="font-size:0.82rem;">План появится в каталоге; каждый спортсмен добавляет себе отдельное назначение.</span>
+  </div>
+  <div class="form-row plan-trainer-exercise-block">
+    <p class="exercise-rows__hint muted">Для каждой строки: упражнение, затем подходы, повторы и при необходимости вес в килограммах.</p>
+    <div class="exercise-rows plan-trainer-exercise-rows" id="exercise-rows-edit">
+      <div class="exercise-rows__head" aria-hidden="true">
+        <span>Упражнение</span>
+        <span>Подходы</span>
+        <span>Повторы</span>
+        <span>Вес, кг</span>
+        <span></span>
+      </div>
+      {% for pe in plan_exercises %}
+      <div class="exercise-row">
+        <label class="exercise-row__field exercise-row__field--grow">
+          <span class="exercise-row__label">Упражнение</span>
+          <select name="exercise_id" required>
+            {% for ex in exercises %}
+              <option value="{{ ex.id }}"{% if ex.id == pe.exercise_id %} selected{% endif %}>{{ ex.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="exercise-row__field">
+          <span class="exercise-row__label">Подходы</span>
+          <input type="number" name="target_sets" min="1" value="{{ pe.target_sets }}" inputmode="numeric" aria-label="Подходы">
+        </label>
+        <label class="exercise-row__field">
+          <span class="exercise-row__label">Повторы</span>
+          <input type="number" name="target_reps" min="1" value="{{ pe.target_reps }}" inputmode="numeric" aria-label="Повторы">
+        </label>
+        <label class="exercise-row__field">
+          <span class="exercise-row__label">Вес, кг</span>
+          <input type="number" name="target_weight_kg" min="0" step="0.5" placeholder="необяз." inputmode="decimal" aria-label="Целевой вес в килограммах" value="{% if pe.target_weight_kg %}{{ pe.target_weight_kg }}{% endif %}">
+        </label>
+        <div class="exercise-row__field exercise-row__field--action">
+          <span class="exercise-row__label">Удалить строку</span>
+          <button type="button" class="btn btn--ghost btn--sm row-remove-edit" aria-label="Удалить строку">✕</button>
+        </div>
+      </div>
+      {% empty %}
+      <div class="exercise-row">
+        <label class="exercise-row__field exercise-row__field--grow">
+          <span class="exercise-row__label">Упражнение</span>
+          <select name="exercise_id" required>
+            {% for ex in exercises %}
+              <option value="{{ ex.id }}">{{ ex.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="exercise-row__field">
+          <span class="exercise-row__label">Подходы</span>
+          <input type="number" name="target_sets" min="1" value="4" inputmode="numeric" aria-label="Подходы">
+        </label>
+        <label class="exercise-row__field">
+          <span class="exercise-row__label">Повторы</span>
+          <input type="number" name="target_reps" min="1" value="8" inputmode="numeric" aria-label="Повторы">
+        </label>
+        <label class="exercise-row__field">
+          <span class="exercise-row__label">Вес, кг</span>
+          <input type="number" name="target_weight_kg" min="0" step="0.5" placeholder="необяз." inputmode="decimal" aria-label="Целевой вес в килограммах">
+        </label>
+        <div class="exercise-row__tail" aria-hidden="true"></div>
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="btn btn--ghost btn--sm" id="add-exercise-row-edit">+ строка</button>
+  </div>
+  <button type="submit" class="btn btn--primary">Сохранить изменения</button>
+</form>
+
+<template id="exercise-row-template-edit">
+  <div class="exercise-row">
+    <label class="exercise-row__field exercise-row__field--grow">
+      <span class="exercise-row__label">Упражнение</span>
+      <select name="exercise_id" required>
+        {% for ex in exercises %}
+          <option value="{{ ex.id }}">{{ ex.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="exercise-row__field">
+      <span class="exercise-row__label">Подходы</span>
+      <input type="number" name="target_sets" min="1" value="4" inputmode="numeric" aria-label="Подходы">
+    </label>
+    <label class="exercise-row__field">
+      <span class="exercise-row__label">Повторы</span>
+      <input type="number" name="target_reps" min="1" value="8" inputmode="numeric" aria-label="Повторы">
+    </label>
+    <label class="exercise-row__field">
+      <span class="exercise-row__label">Вес, кг</span>
+      <input type="number" name="target_weight_kg" min="0" step="0.5" placeholder="необяз." inputmode="decimal" aria-label="Целевой вес в килограммах">
+    </label>
+    <div class="exercise-row__field exercise-row__field--action">
+      <span class="exercise-row__label">Удалить строку</span>
+      <button type="button" class="btn btn--ghost btn--sm row-remove-edit" aria-label="Удалить строку">✕</button>
+    </div>
+  </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var rows = document.getElementById("exercise-rows-edit");
+    var tpl = document.getElementById("exercise-row-template-edit");
+    var addBtn = document.getElementById("add-exercise-row-edit");
+    if (addBtn && tpl && rows) {
+      addBtn.addEventListener("click", function () {
+        rows.appendChild(tpl.content.cloneNode(true));
+      });
+      rows.addEventListener("click", function (e) {
+        if (e.target.classList.contains("row-remove-edit")) {
+          var row = e.target.closest(".exercise-row");
+          if (row && rows.querySelectorAll(".exercise-row").length > 1) {
+            row.remove();
+          }
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

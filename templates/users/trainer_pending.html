@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Ожидание подтверждения{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header__title">Профиль тренера на проверке</h1>
+  <p class="page-header__desc muted">
+    Администратор подтвердит вашу роль в ближайшее время. После активации откроются дашборд,
+    планы и работа с атлетами.
+  </p>
+</div>
+<div class="card card--pad-lg">
+  <p class="muted">
+    Пока вы можете выйти из аккаунта или написать администратору через контакт организации.
+  </p>
+  <div style="margin-top: var(--space-md); display:flex; gap: var(--space-sm); flex-wrap: wrap;">
+    <form action="{% url 'users:logout' %}" method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn--ghost">Выйти</button>
+    </form>
+    {% if user.is_staff %}
+      <a class="btn btn--primary" href="{% url 'admin:index' %}">Перейти в админку</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

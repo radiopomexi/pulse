@@ -1,0 +1,32 @@
+{% extends "staff/layout.html" %}
+
+{% block title %}Профиль: {{ profile_user.email }}{% endblock %}
+
+{% block staff_content %}
+<p class="muted" style="margin-bottom:8px;"><a href="{% url 'dashboard:staff_users' %}">← Пользователи</a></p>
+<h1 class="page-header__title">Профиль пользователя</h1>
+<p class="page-header__desc muted" style="margin-bottom: var(--space-lg);">Просмотр от имени персонала Pulse.</p>
+
+<section class="card card--pad-lg">
+  <div class="profile-head">
+    {% if profile_user.avatar %}
+      <img class="avatar" src="{{ profile_user.avatar.url }}" alt="">
+    {% else %}
+      <div class="avatar" aria-hidden="true">{{ initials }}</div>
+    {% endif %}
+    <div class="profile-head__main">
+      <div class="profile-meta">
+        <h2 style="margin:0 0 4px;">{{ profile_user.get_full_name|default:profile_user.email }}</h2>
+        <p class="muted">{{ profile_user.get_role_display }} · {{ profile_user.email }}</p>
+        {% if profile_user.contact_info %}
+          <p class="muted profile-meta__contacts">{{ profile_user.contact_info }}</p>
+        {% endif %}
+        <p class="muted" style="margin-top:8px;">Статус: {% if profile_user.is_active %}активен{% else %}заблокирован{% endif %} · Регистрация: {{ profile_user.date_joined|date:"d.m.Y H:i" }}</p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <a class="btn btn--ghost btn--sm" href="{% url 'dashboard:staff_plans' %}?user={{ profile_user.pk }}">Планы пользователя</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

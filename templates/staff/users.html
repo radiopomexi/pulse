@@ -1,0 +1,122 @@
+{% extends "staff/layout.html" %}
+{% load static %}
+
+{% block title %}Пользователи — панель{% endblock %}
+
+{% block staff_content %}
+<h1 class="page-header__title">Пользователи</h1>
+<p class="page-header__desc muted" style="margin-bottom: var(--space-md);">Поиск, фильтр по роли, смена роли (администратор), действия с учётными записями.</p>
+
+<form method="get" class="staff-toolbar card">
+  <div class="staff-toolbar__row">
+    <div class="staff-toolbar__search-col">
+      <label class="staff-toolbar__label" for="staff-q">Поиск (email / логин)</label>
+      <div class="staff-searchbar">
+        <span class="staff-searchbar__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </span>
+        <input type="search" name="q" id="staff-q" class="staff-searchbar__input" value="{{ search_q }}" placeholder="фрагмент email…" autocomplete="off">
+      </div>
+    </div>
+    <div class="staff-toolbar__role-col">
+      <label class="staff-toolbar__label" for="staff-role">Роль</label>
+      <select name="role" id="staff-role">
+        <option value="">Все</option>
+        {% for val, label in role_choices %}
+          <option value="{{ val }}"{% if filter_role == val %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="staff-toolbar__actions">
+      <button type="submit" class="btn btn--primary staff-toolbar__submit">Найти</button>
+      <a class="btn btn--ghost staff-toolbar__reset" href="{% url 'dashboard:staff_users' %}">Сброс</a>
+    </div>
+  </div>
+</form>
+
+<div class="card card--pad-lg table-scroll">
+  <table class="staff-table">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Имя</th>
+        <th>Роль</th>
+        <th>Статус</th>
+        <th>Регистрация</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users_list %}
+      <tr>
+        <td>{{ u.email }}</td>
+        <td>{{ u.get_full_name|default:"—" }}</td>
+        <td class="staff-users-role-cell">{{ u.get_role_display }}</td>
+        <td>{% if u.is_active %}Активен{% else %}Заблокирован{% endif %}</td>
+        <td>{{ u.date_joined|date:"d.m.Y H:i" }}</td>
+        <td class="staff-users-actions-cell">
+          <div class="staff-dd" data-staff-dd>
+            <button type="button" class="btn btn--ghost btn--sm staff-dd__btn" aria-haspopup="true" aria-expanded="false">Действия</button>
+            <div class="staff-dd__menu" hidden role="menu">
+              <a class="staff-dd__item" role="menuitem" href="{% url 'dashboard:user_profile' u.pk %}">Просмотр профиля</a>
+              <a class="staff-dd__item" role="menuitem" href="{% url 'dashboard:staff_plans' %}?user={{ u.pk }}">Планы пользователя</a>
+              {% if staff_is_admin and u.pk != request.user.pk %}
+              <button type="button" class="staff-dd__item staff-dd__item--btn" role="menuitem" data-role-modal-open data-user-id="{{ u.pk }}" data-role="{{ u.role }}">Повышение роли</button>
+              <form method="post" class="staff-dd__item-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_active">
+                <input type="hidden" name="user_id" value="{{ u.pk }}">
+                <button type="submit" class="staff-dd__item staff-dd__item--submit" role="menuitem">{% if u.is_active %}Заблокировать{% else %}Разблокировать{% endif %}</button>
+              </form>
+              {% endif %}
+              {% if u.role == 'trainer' and not u.trainer_verified and request.user.is_elevated_staff %}
+              <form method="post" class="staff-dd__item-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="confirm_trainer">
+                <input type="hidden" name="user_id" value="{{ u.pk }}">
+                <button type="submit" class="staff-dd__item staff-dd__item--submit" role="menuitem">Подтвердить тренера</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="muted">Нет записей по текущим фильтрам.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if staff_is_admin %}
+<dialog class="plan-remove-dialog staff-role-dialog" id="staff-role-dialog" aria-labelledby="staff-role-dialog-title">
+  <form method="post" class="plan-remove-dialog__form" id="staff-role-dialog-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="update_role">
+    <input type="hidden" name="user_id" value="" id="staff-role-target-id">
+    <h2 class="pulse-dialog__title" id="staff-role-dialog-title">Повышение роли</h2>
+    <p class="muted plan-remove-dialog__text">Выберите новую роль пользователя и сохраните.</p>
+    <div class="form-row">
+      <label for="staff-role-select">Роль</label>
+      <select name="role" id="staff-role-select" class="staff-table-select" style="width:100%;">
+        {% for val, label in role_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="plan-remove-dialog__actions" style="margin-top: var(--space-md);">
+      <button type="button" class="btn btn--ghost btn--sm" id="staff-role-dialog-cancel">Отмена</button>
+      <button type="submit" class="btn btn--primary btn--sm">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'js/staff_users_dropdown.js' %}"></script>
+{% endblock %}

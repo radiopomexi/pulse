@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="auth-panel">
+  <div class="card">
+    <h1 class="page-header__title">С возвращением</h1>
+    <p class="muted" style="margin-bottom: var(--space-lg);">Войдите по email и паролю.</p>
+    <form method="post" class="form-grid" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="nonfield-errors">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="form-row">
+        <label for="id_username">Email</label>
+        {{ form.username }}
+        {% for e in form.username.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="form-row">
+        <label for="id_password">Пароль</label>
+        {{ form.password }}
+        {% for e in form.password.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+      </div>
+      <button type="submit" class="btn btn--primary btn--block">Войти</button>
+    </form>
+    <p class="muted" style="margin-top: var(--space-md); font-size: 0.9rem;">
+      Нет аккаунта? <a href="{% url 'users:register' %}">Регистрация</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

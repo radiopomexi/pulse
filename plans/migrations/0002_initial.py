@@ -1,0 +1,8 @@
+import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
+
+class Migration(migrations.Migration):
+    initial = True
+    dependencies = [('plans', '0001_initial'), ('trainings', '0001_initial'), migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
+    operations = [migrations.AddField(model_name='planassignment', name='assigned_by', field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='assignments_made', to=settings.AUTH_USER_MODEL)), migrations.AddField(model_name='planassignment', name='athlete', field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='plan_assignments', to=settings.AUTH_USER_MODEL)), migrations.AddField(model_name='planexercise', name='exercise', field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='plan_links', to='trainings.exercise')), migrations.AddField(model_name='trainingplan', name='author', field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='authored_plans', to=settings.AUTH_USER_MODEL)), migrations.AddField(model_name='planexercise', name='plan', field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='plan_exercises', to='plans.trainingplan')), migrations.AddField(model_name='planassignment', name='plan', field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='assignments', to='plans.trainingplan')), migrations.AddConstraint(model_name='planassignment', constraint=models.UniqueConstraint(fields=('plan', 'athlete'), name='unique_plan_assignment_per_athlete'))]

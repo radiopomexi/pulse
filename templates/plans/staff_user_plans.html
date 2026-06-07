@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Планы: {{ target_user.email }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="muted" style="margin-bottom:4px;"><a href="{% url 'dashboard:staff_users' %}">← Пользователи</a></p>
+  <h1 class="page-header__title">Планы пользователя</h1>
+  <p class="page-header__desc muted">{{ target_user.get_full_name|default:target_user.email }} · {{ target_user.get_role_display }}</p>
+</div>
+
+<section class="card card--pad-lg" style="margin-bottom: var(--space-md);">
+  <h2 class="card__title" style="margin-bottom: var(--space-sm);">Созданные планы</h2>
+  {% if authored_plans %}
+  <div class="table-scroll">
+    <table class="staff-table">
+      <thead>
+        <tr><th>Название</th><th>Упражнений</th><th>Публичный</th></tr>
+      </thead>
+      <tbody>
+        {% for p in authored_plans %}
+        <tr>
+          <td><a href="{% url 'plans:detail' p.pk %}">{{ p.name }}</a></td>
+          <td>{{ p.exercise_count }}</td>
+          <td>{% if p.is_public %}Да{% else %}Нет{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">Нет планов от имени этого пользователя.</p>
+  {% endif %}
+</section>
+
+<section class="card card--pad-lg">
+  <h2 class="card__title" style="margin-bottom: var(--space-sm);">Назначенные планы</h2>
+  {% if assigned_plans %}
+  <div class="table-scroll">
+    <table class="staff-table">
+      <thead>
+        <tr><th>Название</th><th>Автор</th><th>Упражнений</th></tr>
+      </thead>
+      <tbody>
+        {% for p in assigned_plans %}
+        <tr>
+          <td><a href="{% url 'plans:detail' p.pk %}">{{ p.name }}</a></td>
+          <td>{{ p.author.get_full_name|default:p.author.email }}</td>
+          <td>{{ p.exercise_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">Нет назначенных планов.</p>
+  {% endif %}
+</section>
+{% endblock %}

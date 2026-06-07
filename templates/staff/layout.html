@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="staff-shell">
+  <button type="button" class="staff-menu-toggle" id="staff-menu-toggle" aria-controls="staff-sidebar" aria-expanded="false">
+    Меню
+  </button>
+  <aside class="staff-sidebar" id="staff-sidebar" aria-label="Разделы панели">
+    <div class="staff-sidebar__brand">Pulse · персонал</div>
+    <nav class="staff-sidebar__nav">
+      <a class="staff-nav-link{% if nav_staff == 'home' %} staff-nav-link--active{% endif %}" href="{% url 'dashboard:staff_home' %}">Обзор</a>
+      <a class="staff-nav-link{% if nav_staff == 'users' %} staff-nav-link--active{% endif %}" href="{% url 'dashboard:staff_users' %}">Пользователи</a>
+      <a class="staff-nav-link{% if nav_staff == 'plans' %} staff-nav-link--active{% endif %}" href="{% url 'dashboard:staff_plans' %}">Планы тренировок</a>
+    </nav>
+    <a class="staff-nav-link staff-nav-link--muted" href="{% url 'dashboard:home' %}">← К дашборду</a>
+  </aside>
+  <div class="staff-main">
+    {% block staff_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'js/staff-nav.js' %}"></script>
+{% endblock %}

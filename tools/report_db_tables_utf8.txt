@@ -1,0 +1,208 @@
+Таблицы базы данных веб-приложения Pulse
+(формат для вставки в отчёт: № п/п | имя поля | тип поля | описание поля)
+
+Примечание: имена таблиц и полей — как в SQLite/PostgreSQL после миграций Django.
+
+
+========================================================================
+Таблица 4.1 — users_customuser (Пользователь)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	password	VARCHAR(128)	пароль
+3	last_login	DATETIME	последний вход
+4	is_superuser	BOOLEAN	статус суперпользователя. Указывает, что пользователь имеет все права без явного их назначения.
+5	username	VARCHAR(150)	имя пользователя. Обязательное поле. Не более 150 символов. Только буквы, цифры и символы @/./+/-/_.
+6	first_name	VARCHAR(150)	имя
+7	last_name	VARCHAR(150)	фамилия
+8	is_staff	BOOLEAN	статус персонала. Отметьте, если пользователь может входить в административную часть сайта.
+9	is_active	BOOLEAN	активный. Отметьте, если пользователь должен считаться активным. Уберите эту отметку вместо удаления учётной записи.
+10	date_joined	DATETIME	дата регистрации
+11	email	VARCHAR(254)	Email
+12	role	VARCHAR(20)	Роль
+13	trainer_verified	BOOLEAN	Тренер подтверждён. Для тренеров: доступ после подтверждения администратором.
+14	avatar	VARCHAR(100)	Аватар
+15	contact_info	VARCHAR(255)	Контакты. Телефон, Telegram и т.п.
+
+========================================================================
+Таблица 4.2 — users_trainerprofile (Профиль тренера)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	user_id	INT (FK → users_customuser)	user
+3	bio	TEXT	О себе
+
+========================================================================
+Таблица 4.3 — users_trainerathletelink (Связь тренер — атлет)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	trainer_profile_id	INT (FK → users_trainerprofile)	trainer profile
+3	athlete_id	INT (FK → users_customuser)	athlete
+4	confirmed	BOOLEAN	Подтверждено атлетом
+5	created_at	DATETIME	created at
+
+========================================================================
+Таблица 4.4 — trainings_exercise (Упражнение)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	name	VARCHAR(200)	Название
+3	category	VARCHAR(20)	Тип
+4	description	TEXT	Описание
+5	created_at	DATETIME	created at
+
+========================================================================
+Таблица 4.5 — trainings_workoutsession (Тренировка)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	user_id	INT (FK → users_customuser)	user
+3	date	DATE	Дата
+4	title	VARCHAR(200)	Название
+5	notes	TEXT	Заметки
+6	duration_minutes	SMALLINT (UNSIGNED)	Длительность, мин
+7	workout_type	VARCHAR(20)	Тип тренировки
+8	training_plan_id	INT (FK → plans_trainingplan)	План
+9	created_at	DATETIME	created at
+
+========================================================================
+Таблица 4.6 — trainings_workoutexercise (Упражнение в тренировке)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	session_id	INT (FK → trainings_workoutsession)	session
+3	exercise_id	INT (FK → trainings_exercise)	exercise
+4	order	SMALLINT (UNSIGNED)	Порядок
+5	sets	SMALLINT (UNSIGNED)	Подходы
+6	reps	SMALLINT (UNSIGNED)	Повторы
+7	weight_kg	DECIMAL(7,2)	Вес, кг
+
+========================================================================
+Таблица 4.7 — trainings_bodymetric (Замер тела)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	user_id	INT (FK → users_customuser)	user
+3	date	DATE	Дата
+4	weight_kg	FLOAT	Вес, кг
+5	body_fat_percent	FLOAT	% жира
+6	note	TEXT	Заметка
+7	created_at	DATETIME	created at
+
+========================================================================
+Таблица 4.8 — plans_trainingplan (План тренировок)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	name	VARCHAR(200)	Название плана
+3	description	TEXT	Описание
+4	author_id	INT (FK → users_customuser)	author
+5	starts_on	DATE	Дата начала
+6	ends_on	DATE	Дата окончания
+7	workout_type	VARCHAR(20)	Тип тренировки
+8	duration_minutes	INT	Длительность тренировки, мин
+9	is_public	BOOLEAN	Общедоступный план. Виден в каталоге всем спортсменам.
+10	strict_schedule	BOOLEAN	Жёсткое расписание по дням. Включите, если план привязан к датам и выполняется в рамках периода; иначе — гибкое расписание (в любой день).
+11	created_at	DATETIME	created at
+12	updated_at	DATETIME	updated at
+
+========================================================================
+Таблица 4.9 — plans_planexercise (Упражнение в плане)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	plan_id	INT (FK → plans_trainingplan)	plan
+3	exercise_id	INT (FK → trainings_exercise)	exercise
+4	order	SMALLINT (UNSIGNED)	Порядок
+5	target_sets	SMALLINT (UNSIGNED)	Подходы
+6	target_reps	SMALLINT (UNSIGNED)	Повторы
+7	target_weight_kg	DECIMAL(7,2)	Целевой вес, кг
+8	notes	VARCHAR(255)	Заметка
+
+========================================================================
+Таблица 4.10 — plans_planassignment (Назначение плана)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	plan_id	INT (FK → plans_trainingplan)	plan
+3	athlete_id	INT (FK → users_customuser)	athlete
+4	assigned_by_id	INT (FK → users_customuser)	assigned by
+5	status	VARCHAR(20)	status
+6	created_at	DATETIME	created at
+
+========================================================================
+Таблица 4.11 — dashboard_notification (Уведомление)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	BIGINT (AUTO)	ID
+2	recipient_id	INT (FK → users_customuser)	Получатель
+3	message	VARCHAR(500)	Текст
+4	link	VARCHAR(500)	Ссылка
+5	is_read	BOOLEAN	Прочитано
+6	created_at	DATETIME	created at
+
+========================================================================
+Таблица 4.12 — auth_group (группа)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	INT (AUTO)	ID
+2	name	VARCHAR(150)	имя
+
+========================================================================
+Таблица 4.13 — auth_permission (право)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	INT (AUTO)	ID
+2	name	VARCHAR(255)	имя
+3	content_type_id	INT (FK → django_content_type)	тип содержимого
+4	codename	VARCHAR(100)	кодовое название
+
+========================================================================
+Таблица 4.14 — django_admin_log (запись в журнале)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	INT (AUTO)	ID
+2	action_time	DATETIME	время действия
+3	user_id	INT (FK → users_customuser)	пользователь
+4	content_type_id	INT (FK → django_content_type)	тип содержимого
+5	object_id	TEXT	идентификатор объекта
+6	object_repr	VARCHAR(200)	представление объекта
+7	action_flag	SMALLINT (UNSIGNED)	тип действия
+8	change_message	TEXT	сообщение об изменении
+
+========================================================================
+Таблица 4.15 — django_content_type (тип содержимого)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	id	INT (AUTO)	ID
+2	app_label	VARCHAR(100)	app label
+3	model	VARCHAR(100)	имя класса модели
+
+========================================================================
+Таблица 4.16 — django_session (сессия)
+========================================================================
+
+№ п/п	Имя поля	Тип поля	Описание поля
+1	session_key	VARCHAR(40)	ключ сессии
+2	session_data	TEXT	данные сессии
+3	expire_date	DATETIME	дата окончания
+
+— Конец списка таблиц —
+
+Связи many-to-many с явной промежуточной моделью (например users_trainerathletelink) уже перечислены выше.

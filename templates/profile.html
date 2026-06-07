@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block extra_head %}
+  {{ chart_types|json_script:"pulse-profile-types" }}
+  {{ chart_exercise_progress|json_script:"pulse-profile-exercises" }}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header__title">Профиль</h1>
+  <p class="page-header__desc muted">Типы тренировок и прогресс в упражнениях.</p>
+</div>
+
+<section class="card card--pad-lg">
+  <div class="profile-head">
+    {% if profile_user.avatar %}
+      <img class="avatar" src="{{ profile_user.avatar.url }}" alt="">
+    {% else %}
+      <div class="avatar" aria-hidden="true">{{ initials }}</div>
+    {% endif %}
+    <div class="profile-head__main">
+      <div class="profile-meta">
+        <h1>{{ profile_user.get_full_name|default:profile_user.email }}</h1>
+        <p class="muted">{{ profile_user.display_role }} · {{ profile_user.email }}</p>
+        {% if profile_user.contact_info %}
+          <p class="muted profile-meta__contacts">{{ profile_user.contact_info }}</p>
+        {% endif %}
+      </div>
+      <a href="{% url 'dashboard:profile_edit' %}" class="btn btn--primary profile-head__edit">Редактировать профиль</a>
+    </div>
+  </div>
+</section>
+
+<div class="profile-secondary-stack">
+{% if profile_user.role == 'trainer' and profile_user.trainer_profile %}
+<section class="card card--pad-lg profile-coach-block">
+  <h2 class="card__title" style="margin-bottom: var(--space-md);">Мои спортсмены</h2>
+  <p class="muted" style="margin-bottom: var(--space-md);">Добавьте атлета по email — он подтвердит связь в своём профиле.</p>
+  <form method="post" class="form-grid profile-invite-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="invite_athlete">
+    <div class="form-row form-row--inline profile-invite-form__row">
+      <div class="form-row profile-invite-form__field">
+        <label for="athlete_email">Email атлета</label>
+        <input type="email" name="athlete_email" id="athlete_email" placeholder="athlete@example.com" required>
+      </div>
+      <button type="submit" class="btn btn--invite-athlete">Пригласить спортсмена</button>
+    </div>
+  </form>
+  {% if trainer_pending_links %}
+  <h3 class="card__subtitle" style="margin-top: var(--space-lg);">Ожидают подтверждения</h3>
+  <ul class="profile-link-list">
+    {% for link in trainer_pending_links %}
+    <li>
+      <span>{{ link.athlete.email }}</span>
+      <form method="post" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="remove_athlete_link">
+        <input type="hidden" name="link_id" value="{{ link.pk }}">
+        <button type="submit" class="btn btn--ghost btn--sm">Отменить</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if trainer_confirmed_links %}
+  <h3 class="card__subtitle" style="margin-top: var(--space-md);">Подтверждённые</h3>
+  <ul class="profile-link-list">
+    {% for link in trainer_confirmed_links %}
+    <li>
+      <span>{{ link.athlete.get_full_name|default:link.athlete.email }} · {{ link.athlete.email }}</span>
+      <a class="btn btn--ghost btn--sm" href="{% url 'dashboard:athlete_profile' link.athlete.pk %}">Прогресс</a>
+      <a class="btn btn--ghost btn--sm" href="{% url 'dashboard:athlete_weight' link.athlete.pk %}">Вес</a>
+      <form method="post" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="remove_athlete_link">
+        <input type="hidden" name="link_id" value="{{ link.pk }}">
+        <button type="submit" class="btn btn--ghost btn--sm">Удалить</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if profile_user.role == 'athlete' %}
+<section class="card card--pad-lg profile-coach-block">
+  <h2 class="card__title" style="margin-bottom: var(--space-md);">Мои тренеры</h2>
+  {% if athlete_pending_links %}
+  <h3 class="card__subtitle">Приглашения</h3>
+  <ul class="profile-link-list">
+    {% for link in athlete_pending_links %}
+    <li>
+      <span>{{ link.trainer_profile.user.get_full_name|default:link.trainer_profile.user.email }}</span>
+      <form method="post" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="confirm_trainer_link">
+        <input type="hidden" name="link_id" value="{{ link.pk }}">
+        <button type="submit" class="btn btn--primary btn--sm">Подтвердить</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if athlete_confirmed_links %}
+  <h3 class="card__subtitle" style="margin-top: var(--space-md);">Активные тренеры</h3>
+  <ul class="profile-link-list">
+    {% for link in athlete_confirmed_links %}
+    <li>{{ link.trainer_profile.user.get_full_name|default:link.trainer_profile.user.email }} · {{ link.trainer_profile.user.email }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if not athlete_pending_links and not athlete_confirmed_links %}
+  <p class="muted">Пока нет привязанных тренеров.</p>
+  {% endif %}
+</section>
+{% endif %}
+</div>
+
+<section class="card card--pad-lg weight-summary-card">
+  <div class="weight-summary-card__inner">
+    <div>
+      <p class="weight-summary-card__eyebrow muted">Текущий вес</p>
+      {% if body_weight_summary.has_current %}
+      <p class="weight-summary-card__current">{{ body_weight_summary.current_kg|floatformat:1 }} <span class="weight-summary-card__unit">кг</span></p>
+      {% else %}
+      <p class="weight-summary-card__current weight-summary-card__current--empty muted">—</p>
+      {% endif %}
+      {% if body_weight_summary.change_display %}
+      <p class="weight-summary-card__change {% if body_weight_summary.change_positive %}weight-summary-card__change--bad{% elif body_weight_summary.change_positive == False %}weight-summary-card__change--good{% else %}muted{% endif %}">Изменение за месяц: {{ body_weight_summary.change_display }}</p>
+      {% else %}
+      <p class="weight-summary-card__change muted">Изменение за месяц: нет данных</p>
+      {% endif %}
+    </div>
+    <a class="btn btn--primary weight-summary-card__cta" href="{% url 'dashboard:profile_weight' %}">Отслеживание веса</a>
+  </div>
+</section>
+
+<section class="profile-grid">
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Типы тренировок</h2>
+      <span class="badge">По сессиям</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chartProfileTypes" aria-label="Круговая диаграмма типов"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Прогресс по упражнениям</h2>
+      <p class="card__subtitle">Макс. вес за неделю (топ‑3, ~2 мес.)</p>
+    </div>
+    <div class="chart-wrap chart-wrap--tall">
+      <canvas id="chartProfileExercises" aria-label="Линейный график прогресса"></canvas>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    PulseCharts.initProfile();
+  });
+</script>
+{% endblock %}

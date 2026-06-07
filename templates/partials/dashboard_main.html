@@ -1,0 +1,145 @@
+<div class="page-header">
+  <h1 class="page-header__title">Обзор</h1>
+  <p class="page-header__desc muted">
+    Ключевые метрики, динамика нагрузки и мини-календарь ваших сессий.
+  </p>
+</div>
+
+<section class="grid-metrics">
+  <article class="card metric">
+    <div class="metric__label">Тренировки за неделю</div>
+    <div class="metric__value">{{ metrics.workouts_week }}</div>
+    <p class="metric__hint">Последние 7 дней</p>
+    <div class="metric__accent-line" aria-hidden="true"></div>
+  </article>
+  <article class="card metric">
+    <div class="metric__label">Тоннаж недели</div>
+    <div class="metric__value">{{ metrics.volume_week|floatformat:0 }} <span style="font-size:1rem;font-weight:500;color:var(--text-muted);">кг×повт</span></div>
+    <p class="metric__hint">Суммарный объём</p>
+    <div class="metric__accent-line" aria-hidden="true"></div>
+  </article>
+  <article class="card metric">
+    <div class="metric__label">К неделе</div>
+    <div class="metric__value">{{ metrics.volume_week_change }}</div>
+    <p class="metric__hint">к прошлой календарной неделе</p>
+    <div class="metric__accent-line" aria-hidden="true"></div>
+  </article>
+  <article class="card metric">
+    <div class="metric__label">Серия (streak)</div>
+    <div class="metric__value">{{ metrics.streak }}</div>
+    <p class="metric__hint">Дней подряд с тренировкой</p>
+    <div class="metric__accent-line" aria-hidden="true"></div>
+  </article>
+  <article class="card metric">
+    <div class="metric__label">Активные планы</div>
+    <div class="metric__value">{{ metrics.active_plans }}</div>
+    <p class="metric__hint">Назначено вам</p>
+    <div class="metric__accent-line" aria-hidden="true"></div>
+  </article>
+</section>
+
+<section class="grid-charts">
+  <div class="card">
+    <div class="card__header">
+      <div>
+        <h2 class="card__title">Нагрузка по неделям</h2>
+        <p class="card__subtitle">Суммарный объём (кг × повторения)</p>
+      </div>
+      <span class="badge badge--accent">8 недель</span>
+    </div>
+    <div class="chart-wrap chart-wrap--tall">
+      <canvas id="chartVolumeWeeks" aria-label="График тоннажа по неделям"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card__header">
+      <div>
+        <h2 class="card__title">Сессии по дням</h2>
+        <p class="card__subtitle">Последние 7 дней</p>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chartSessionsDays" aria-label="Столбчатый график тренировок"></canvas>
+    </div>
+  </div>
+</section>
+
+<section class="grid-charts" style="margin-top: var(--space-md);">
+  <div class="card">
+    <div class="card__header">
+      <div>
+        <h2 class="card__title">Типы тренировок</h2>
+        <p class="card__subtitle">По зарегистрированным сессиям</p>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chartDashTypes" aria-label="Распределение типов"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card__header">
+      <div>
+        <h2 class="card__title">Прогресс по упражнениям</h2>
+        <p class="card__subtitle">Макс. вес за неделю (топ‑3)</p>
+      </div>
+    </div>
+    <div class="chart-wrap chart-wrap--tall">
+      <canvas id="chartDashExercises" aria-label="Прогресс веса"></canvas>
+    </div>
+  </div>
+</section>
+
+<section class="dash-body-weight-section">
+  <div class="card dash-body-card">
+    <div class="card__header">
+      <div>
+        <h2 class="card__title">Вес тела</h2>
+        <p class="card__subtitle">Динамика по замерам</p>
+      </div>
+    </div>
+    <div class="dash-body-weight__inner">
+      <div class="dash-body-weight__chart">
+        {% if chart_body_weight.has_enough %}
+        <div class="chart-wrap chart-wrap--dash-bw">
+          <canvas id="chartDashBodyWeight" aria-label="График веса тела"></canvas>
+        </div>
+        {% else %}
+        <p class="dash-bw-placeholder muted">Недостаточно данных</p>
+        {% endif %}
+      </div>
+      <form class="dash-body-metric-form" method="post" action="{{ body_metric_post_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_body_metric">
+        <input type="hidden" name="cal_year" value="{{ calendar_mini.year }}">
+        <input type="hidden" name="cal_month" value="{{ calendar_mini.month }}">
+        <div class="dash-body-metric-form__row">
+          <div class="field">
+            {{ body_metric_form.date.label_tag }}
+            {{ body_metric_form.date }}
+            {{ body_metric_form.date.errors }}
+          </div>
+          <div class="field">
+            {{ body_metric_form.weight_kg.label_tag }}
+            {{ body_metric_form.weight_kg }}
+            {{ body_metric_form.weight_kg.errors }}
+          </div>
+          <button type="submit" class="btn btn--primary">Добавить</button>
+        </div>
+        {% if body_metric_form.non_field_errors %}
+        {{ body_metric_form.non_field_errors }}
+        {% endif %}
+      </form>
+    </div>
+  </div>
+</section>
+
+<section style="margin-top: var(--space-lg);">
+  <div class="card">
+    <div class="card__header">
+      <h2 class="card__title">Мини-календарь</h2>
+      <a class="btn btn--ghost btn--sm" href="{% url 'dashboard:calendar' %}">Полный календарь</a>
+    </div>
+    <div id="mini-calendar-root" class="calendar-root" data-mode="mini"></div>
+    <div id="mini-calendar-detail" class="mini-cal-detail" role="region" aria-live="polite" hidden></div>
+  </div>
+</section>

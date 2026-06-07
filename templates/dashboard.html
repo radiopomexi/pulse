@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Дашборд{% endblock %}
+
+{% block extra_head %}
+  {{ chart_weeks|json_script:"pulse-chart-weeks" }}
+  {{ chart_days|json_script:"pulse-chart-days" }}
+  {{ chart_types|json_script:"pulse-dash-types" }}
+  {{ chart_exercise_weeks|json_script:"pulse-dash-exercises" }}
+  {{ chart_body_weight|json_script:"pulse-dash-body-weight" }}
+  {{ calendar_mini|json_script:"pulse-calendar-mini" }}
+{% endblock %}
+
+{% block content %}
+{% include "partials/dashboard_main.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script src="{% static 'js/calendar.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    PulseCharts.initDashboard();
+    var mini = document.getElementById("mini-calendar-root");
+    var miniScript = document.getElementById("pulse-calendar-mini");
+    if (mini && miniScript) {
+      try {
+        var data = JSON.parse(miniScript.textContent);
+        PulseCalendar.renderMini(mini, data, document.getElementById("mini-calendar-detail"));
+      } catch (e) {}
+    }
+  });
+</script>
+{% endblock %}
