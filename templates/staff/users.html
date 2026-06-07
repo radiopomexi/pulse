@@ -71,6 +71,7 @@
                 <input type="hidden" name="user_id" value="{{ u.pk }}">
                 <button type="submit" class="staff-dd__item staff-dd__item--submit" role="menuitem">{% if u.is_active %}Заблокировать{% else %}Разблокировать{% endif %}</button>
               </form>
+              <button type="button" class="staff-dd__item staff-dd__item--btn staff-dd__item--danger" role="menuitem" data-delete-modal-open data-user-id="{{ u.pk }}" data-user-email="{{ u.email }}">Удалить аккаунт</button>
               {% endif %}
               {% if u.role == 'trainer' and not u.trainer_verified and request.user.is_elevated_staff %}
               <form method="post" class="staff-dd__item-form">
@@ -110,6 +111,20 @@
     <div class="plan-remove-dialog__actions" style="margin-top: var(--space-md);">
       <button type="button" class="btn btn--ghost btn--sm" id="staff-role-dialog-cancel">Отмена</button>
       <button type="submit" class="btn btn--primary btn--sm">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="plan-remove-dialog staff-delete-dialog" id="staff-delete-dialog" aria-labelledby="staff-delete-dialog-title">
+  <form method="post" class="plan-remove-dialog__form" id="staff-delete-dialog-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete_user">
+    <input type="hidden" name="user_id" value="" id="staff-delete-target-id">
+    <h2 class="pulse-dialog__title" id="staff-delete-dialog-title">Удаление аккаунта</h2>
+    <p class="muted plan-remove-dialog__text">Будут удалены профиль, планы, тренировки и назначения пользователя <strong id="staff-delete-target-email"></strong>. Это действие необратимо.</p>
+    <div class="plan-remove-dialog__actions" style="margin-top: var(--space-md);">
+      <button type="button" class="btn btn--ghost btn--sm" id="staff-delete-dialog-cancel">Отмена</button>
+      <button type="submit" class="btn btn--danger btn--sm">Удалить</button>
     </div>
   </form>
 </dialog>

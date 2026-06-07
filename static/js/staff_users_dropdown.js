@@ -58,5 +58,29 @@
       });
     });
     if (cancel && dlg) cancel.addEventListener("click", function () { dlg.close(); });
+
+    var deleteDlg = document.getElementById("staff-delete-dialog");
+    var deleteForm = document.getElementById("staff-delete-dialog-form");
+    var deleteUidField = document.getElementById("staff-delete-target-id");
+    var deleteEmailEl = document.getElementById("staff-delete-target-email");
+    var deleteCancel = document.getElementById("staff-delete-dialog-cancel");
+
+    document.querySelectorAll("[data-delete-modal-open]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        closeAllMenus();
+        if (!deleteDlg || !deleteForm) return;
+        if (deleteUidField) {
+          deleteUidField.value = btn.getAttribute("data-user-id") || "";
+        }
+        if (deleteEmailEl) {
+          deleteEmailEl.textContent = btn.getAttribute("data-user-email") || "";
+        }
+        if (deleteDlg.showModal) deleteDlg.showModal();
+        else deleteDlg.setAttribute("open", "");
+      });
+    });
+    if (deleteCancel && deleteDlg) {
+      deleteCancel.addEventListener("click", function () { deleteDlg.close(); });
+    }
   });
 })();

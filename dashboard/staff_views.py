@@ -20,6 +20,21 @@ def pulse_is_admin(user) -> bool:
     return bool(user.is_superuser or user.role == Role.ADMIN)
 
 
+def admin_can_delete_user(actor, target) -> bool:
+    if not pulse_is_admin(actor):
+        return False
+    if target.pk == actor.pk:
+        return False
+    if target.is_superuser and User.objects.filter(is_superuser=True).count() <= 1:
+        return False
+    return True
+
+
+@transaction.atomic
+def _delete_user_account(target) -> None:
+    target.delete()
+
+
 class StaffRequiredMixin(UserPassesTestMixin):
 
     def test_func(self) -> bool:
@@ -78,6 +93,8 @@ class StaffUserProfileView(LoginRequiredMixin, StaffElevatedMixin, TemplateView)
         ctx['nav_staff'] = 'users'
         ctx['profile_user'] = u
         ctx['initials'] = (u.first_name[:1] + u.last_name[:1]).upper() if u.first_name else u.email[:2].upper()
+        ctx['staff_is_admin'] = pulse_is_admin(self.request.user)
+        ctx['can_delete_user'] = admin_can_delete_user(self.request.user, u)
         return ctx
 
 
@@ -150,6 +167,20 @@ class StaffUsersView(LoginRequiredMixin, StaffRequiredMixin, TemplateView):
                 return HttpResponseRedirect(reverse('dashboard:staff_users'))
             _apply_user_role_change(target, new_role)
             messages.success(request, f'Роль пользователя {target.email} обновлена.')
+            return HttpResponseRedirect(reverse('dashboard:staff_users'))
+
+        if action == 'delete_user':
+            if not admin_can_delete_user(request.user, target):
+                if target.pk == request.user.pk:
+                    messages.error(request, 'Нельзя удалить свою учётную запись.')
+                elif target.is_superuser:
+                    messages.error(request, 'Нельзя удалить последнего суперпользователя.')
+                else:
+                    messages.error(request, 'Удаление доступно только администратору.')
+                return HttpResponseRedirect(reverse('dashboard:staff_users'))
+            email = target.email
+            _delete_user_account(target)
+            messages.success(request, f'Учётная запись {email} удалена.')
             return HttpResponseRedirect(reverse('dashboard:staff_users'))
 
         messages.error(request, 'Неизвестное действие.')

@@ -1148,6 +1148,30 @@ select:focus {
   font-size: 0.8rem;
 }
 
+.btn--danger {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+}
+
+.btn--danger:hover {
+  background: rgba(239, 68, 68, 0.28);
+}
+
+.btn--danger:active {
+  opacity: 0.9;
+}
+
+html[data-theme="light"] .btn--danger {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+html[data-theme="light"] .btn--danger:hover {
+  background: #fee2e2;
+}
+
 .btn--invite-athlete {
   padding: 0 16px;
   font-size: 14px;
@@ -3304,6 +3328,14 @@ html[data-theme="light"] .staff-dd__item {
 
 html[data-theme="light"] .staff-dd__item--submit {
   color: #1e293b;
+}
+
+.staff-dd__item--danger {
+  color: #f87171;
+}
+
+html[data-theme="light"] .staff-dd__item--danger {
+  color: #dc2626;
 }
 
 .staff-users-role-cell .staff-role-inline {
