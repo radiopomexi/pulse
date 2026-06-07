@@ -4,7 +4,8 @@ from django.core.management.base import BaseCommand
 from django.db.models import Q
 from django.utils import timezone
 from plans.models import PlanAssignment, PlanExercise, TrainingPlan
-from trainings.models import BodyMetric, Exercise, ExerciseCategory, WorkoutExercise, WorkoutSession, WorkoutType
+from django.core.management import call_command
+from trainings.models import BodyMetric, Exercise, WorkoutExercise, WorkoutSession, WorkoutType
 from users.models import CustomUser, Role, TrainerAthleteLink, TrainerProfile
 
 NUM_BULK_TRAINERS = 40
@@ -240,30 +241,8 @@ class Command(BaseCommand):
         profile, _ = TrainerProfile.objects.get_or_create(user=coach)
         TrainerAthleteLink.objects.update_or_create(trainer_profile=profile, athlete=athlete, defaults={'confirmed': True})
 
-        exercises_data = [
-            ('Жим лёжа', ExerciseCategory.STRENGTH),
-            ('Присед со штангой', ExerciseCategory.STRENGTH),
-            ('Становая тяга', ExerciseCategory.STRENGTH),
-            ('Тяга верхнего блока', ExerciseCategory.STRENGTH),
-            ('Жим гантелей сидя', ExerciseCategory.STRENGTH),
-            ('Подтягивания', ExerciseCategory.STRENGTH),
-            ('Выпады с гантелями', ExerciseCategory.STRENGTH),
-            ('Отжимания на брусьях', ExerciseCategory.STRENGTH),
-            ('Румынская тяга', ExerciseCategory.STRENGTH),
-            ('Жим стоя', ExerciseCategory.STRENGTH),
-            ('Планка', ExerciseCategory.MOBILITY),
-            ('Беговая дорожка', ExerciseCategory.CARDIO),
-            ('Эллипс', ExerciseCategory.CARDIO),
-            ('Велоэргометр', ExerciseCategory.CARDIO),
-            ('Скакалка', ExerciseCategory.CARDIO),
-            ('Бёрпи', ExerciseCategory.STRENGTH),
-            ('Растяжка спины', ExerciseCategory.MOBILITY),
-            ('Ягодичный мост', ExerciseCategory.STRENGTH),
-        ]
-        exercises: list[Exercise] = []
-        for name, cat in exercises_data:
-            ex, _ = Exercise.objects.get_or_create(name=name, defaults={'category': cat})
-            exercises.append(ex)
+        call_command('seed_exercises')
+        exercises = list(Exercise.objects.all())
 
         today = timezone.localdate()
         WorkoutSession.objects.filter(user=athlete).delete()
